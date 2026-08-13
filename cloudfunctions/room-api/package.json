@@ -1,7 +1,7 @@
 {
   "name": "room-api",
   "version": "1.0.0",
-  "description": "泉州游金麻将 · 好友房联机云函数",
+  "description": "开麦麻将 · 好友房联机云函数",
   "main": "index.js",
   "dependencies": {
     "@cloudbase/node-sdk": "^2.8.0"
