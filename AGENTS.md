@@ -25,7 +25,9 @@
 - 交付铁律：改完必须先验证（测试/实测）再交付，绝不让用户反复试错
 
 ## 当前状态（2026-08-13）
+- 游戏名：**开麦麻将**（2026-08-13 整体改名，玩法术语"游金/单双三游"保留）
 - 线上已部署：CloudBase 静态托管 `qzmj-d8ge0bj5g9257711b-1463592371.tcloudbaseapp.com`，room-api 云函数（含 getTrtcSign）
-- 已完成：单机可玩、好友房 7 接口+轮询、游金语音双按钮（麦关喇叭开）、微信分享卡 og-image、BGM/喊牌/烟花优化
+- GitHub：github.com/xiaochunqiu1/mahjong（项目仓库，公开）+ github.com/xiaochunqiu1/my-skills（技能仓库，公开）；凭证用 global `http.https://github.com/.extraHeader`（更新跑 ~/.workbuddy/scripts/update-git-token.sh）
+- 已完成：单机可玩、好友房 7 接口+轮询、语音双按钮（麦关喇叭开）、微信分享卡 og-image、BGM/喊牌/烟花优化
 - 待办：真人试玩微调 aiLevel/greed（胜率 50% 校准）、方言语音（泉州话验听）、全设备横屏测试
 - 语音回滚基线：`.workbuddy/backup/no-voice-20260812/restore.sh`（用户说"回到未开麦版本"时执行）
