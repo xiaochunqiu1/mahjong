@@ -76,8 +76,8 @@ font_title = find_font(FONT_CANDIDATES, 110)
 font_sub = find_font_plain(FONT_CANDIDATES, 42)
 font_tag = find_font_plain(FONT_CANDIDATES, 32)
 
-# 标题:泉州游金麻将
-title = "泉州游金麻将"
+# 标题:开麦麻将
+title = "开麦麻将"
 # 副标题
 sub = "假期好搭档"
 

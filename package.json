@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "泉州游金麻将 - 单机可玩版（纯规则引擎 + AI + React 界面）",
+  "description": "开麦麻将 - 单机可玩版（纯规则引擎 + AI + React 界面）",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

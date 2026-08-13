@@ -1,4 +1,4 @@
-/* 泉州游金麻将 · 单机版样式（移植自 mockups 设计系统） */
+/* 开麦麻将 · 单机版样式（移植自 mockups 设计系统） */
 :root {
   --brick: #a63a2e;
   --brick-deep: #7e2a21;
@@ -435,7 +435,7 @@ body { display: flex; align-items: center; justify-content: center; overflow: hi
 /* 左/右家牌河：座位块右侧（在屏幕中段偏左/偏右，避开 topbar/罗盘/foot-info） */
 .og .river-left { left: 200px; top: 132px; width: 88px; flex-direction: row; flex-wrap: wrap; }
 .og .river-right { right: 200px; top: 132px; width: 88px; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; }
-/* 我家牌河：第一排顶部对齐罗盘底部(罗盘 175+30 半径+圆角外缘 ≈ 210)，第二排 z-index 更高覆盖"泉州麻将" */
+/* 我家牌河：第一排顶部对齐罗盘底部(罗盘 175+30 半径+圆角外缘 ≈ 210)，第二排 z-index 更高覆盖"开麦麻将" */
 .og .river-mine { left: 50%; top: 210px; transform: translateX(-50%); width: 130px; justify-content: center; z-index: 6; }
 
 /* ---- 副露（其他三家显示，我家由 my-melds 独占） ---- */
