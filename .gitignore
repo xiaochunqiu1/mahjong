@@ -1,0 +1,28 @@
+# 依赖与构建产物
+node_modules/
+dist/
+*.tsbuildinfo
+
+# 本地工具环境
+.venv/
+
+# WorkBuddy 工作数据（含项目记忆与回滚备份，不公开）
+.workbuddy/
+
+# 密钥与部署配置（含 TRTC SecretKey；仓库提供脱敏版 cloudbaserc.example.json）
+cloudbaserc.json
+.env.local
+
+# Vite 临时文件
+vite.config.ts.timestamp-*.mjs
+
+# 云函数构建产物（build.sh 生成）
+cloudfunctions/room-api/index.js
+
+# 版权不明的音频素材（线上版已含 BGM；原始素材不随仓库分发）
+麻将背景乐.mp3
+
+# 杂项
+*.zip
+.DS_Store
+Thumbs.db

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>泉州游金麻将 · 首页（视觉稿）</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mj.css">
+<style>
+  .home {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+  }
+  .game-title {
+    font-family: var(--serif);
+    font-size: 44px;
+    font-weight: 900;
+    color: var(--rice);
+    letter-spacing: 10px;
+    text-shadow: 0 3px 0 rgba(0,0,0,.3), 0 6px 24px rgba(0,0,0,.4);
+    margin-top: 26px;
+  }
+  .game-title em {
+    font-style: normal;
+    color: var(--gold-light);
+  }
+  .game-sub {
+    margin-top: 6px;
+    font-size: 12px;
+    color: rgba(244,234,216,.85);
+    letter-spacing: 6px;
+  }
+  .menu {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    width: 240px;
+    z-index: 2;
+  }
+  .menu .btn {
+    height: 38px;
+    font-size: 16px;
+  }
+  .menu-row {
+    display: flex;
+    gap: 10px;
+  }
+  .menu-row .btn { flex: 1; }
+  .foot {
+    position: absolute;
+    bottom: 10px;
+    width: 100%;
+    text-align: center;
+    font-size: 10px;
+    color: rgba(244,234,216,.55);
+    letter-spacing: 1px;
+    z-index: 2;
+  }
+</style>
+</head>
+<body>
+<div class="stage bg-brick home">
+  <!-- 海浪纹带 -->
+  <svg class="wave-band" style="top:0" width="812" height="46" viewBox="0 0 812 46" preserveAspectRatio="none">
+    <path d="M0,23 Q25,6 50,23 T100,23 T150,23 T200,23 T250,23 T300,23 T350,23 T400,23 T450,23 T500,23 T550,23 T600,23 T650,23 T700,23 T750,23 T800,23 T850,23"
+      fill="none" stroke="#e8c95f" stroke-width="1.6" opacity=".8"/>
+    <path d="M0,33 Q25,16 50,33 T100,33 T150,33 T200,33 T250,33 T300,33 T350,33 T400,33 T450,33 T500,33 T550,33 T600,33 T650,33 T700,33 T750,33 T800,33 T850,33"
+      fill="none" stroke="#f4ead8" stroke-width="1" opacity=".4"/>
+  </svg>
+
+  <div class="title-ornament">
+    <h1 class="game-title">泉州<em>游金</em>麻将</h1>
+  </div>
+  <div class="game-sub">十 六 张 · 补 花 开 金 · 单 双 三 游</div>
+
+  <nav class="menu">
+    <button class="btn btn-gold">单人游戏</button>
+    <button class="btn btn-sea">创建好友房</button>
+    <button class="btn btn-sea">输入房间码</button>
+    <div class="menu-row">
+      <button class="btn btn-ghost">规则</button>
+      <button class="btn btn-ghost">设置</button>
+    </div>
+  </nav>
+
+  <!-- 燕尾脊剪影 -->
+  <svg class="ridge" width="812" height="74" viewBox="0 0 812 74" preserveAspectRatio="none">
+    <path d="M0,74 L0,52 Q60,44 90,30 Q100,14 118,10 Q112,24 124,30 Q180,44 240,46 L300,50
+             Q340,38 406,38 Q472,38 512,50 L572,46 Q632,44 688,30 Q700,24 694,10 Q712,14 722,30 Q752,44 812,52 L812,74 Z"
+      fill="#12262a" opacity=".85"/>
+  </svg>
+
+  <div class="foot">游客昵称进入 · 战绩仅保存本机最近 20 场 · 无充值无广告 · 视觉稿 v0.1（牌面为占位，终版替换正式素材）</div>
+</div>
+<script>
+  // 等比缩放舞台适配视口
+  function fit() {
+    const s = document.querySelector('.stage');
+    const k = Math.min(innerWidth / 812, innerHeight / 375);
+    s.style.transform = 'scale(' + k + ')';
+  }
+  addEventListener('resize', fit); fit();
+</script>
+</body>
+</html>

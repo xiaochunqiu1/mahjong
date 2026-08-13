@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>泉州游金麻将 · 好友房大厅（视觉稿）</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mj.css">
+<style>
+  .lobby { display: flex; padding: 18px 26px; gap: 22px; }
+
+  .panel-left {
+    width: 300px;
+    background: rgba(18,38,42,.55);
+    border: 1px solid rgba(201,162,39,.45);
+    border-radius: 12px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    z-index: 2;
+  }
+  .panel-title {
+    font-family: var(--serif);
+    color: var(--gold-light);
+    font-size: 15px;
+    letter-spacing: 4px;
+  }
+  .room-code {
+    display: flex;
+    gap: 8px;
+  }
+  .room-code span {
+    width: 38px; height: 50px;
+    background: var(--rice);
+    color: var(--ink);
+    border-radius: 6px;
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 0 rgba(0,0,0,.3);
+  }
+  .share-hint { font-size: 11px; color: rgba(244,234,216,.75); text-align: center; line-height: 1.7; }
+  .panel-left .btn { width: 100%; height: 36px; font-size: 14px; }
+
+  .rounds-pick {
+    display: flex;
+    width: 100%;
+    border: 1px solid rgba(244,234,216,.4);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .rounds-pick div {
+    flex: 1;
+    text-align: center;
+    padding: 7px 0;
+    color: var(--rice);
+    font-size: 13px;
+    letter-spacing: 2px;
+  }
+  .rounds-pick .on {
+    background: var(--gold);
+    color: #3a2c05;
+    font-weight: 700;
+  }
+
+  .panel-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    z-index: 2;
+  }
+  .seats {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .seat {
+    background: rgba(244,234,216,.1);
+    border: 1px solid rgba(244,234,216,.25);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 14px;
+    position: relative;
+  }
+  .seat.empty {
+    border-style: dashed;
+    color: rgba(244,234,216,.5);
+    justify-content: center;
+    font-size: 13px;
+    letter-spacing: 2px;
+  }
+  .avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--sea-light), var(--sea));
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--serif);
+    font-size: 20px;
+    color: #fff;
+    flex: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,.35);
+  }
+  .avatar.bot { background: linear-gradient(135deg, #8a93a6, #5a6373); }
+  .seat .name { color: var(--rice); font-size: 15px; letter-spacing: 1px; }
+  .seat .status { font-size: 11px; margin-top: 3px; letter-spacing: 1px; }
+  .status.ready { color: #7fd6a8; }
+  .status.wait { color: rgba(244,234,216,.6); }
+  .seat .tag { position: absolute; top: 8px; right: 10px; }
+
+  .bottom-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .bottom-bar .tip { flex: 1; font-size: 11px; color: rgba(244,234,216,.65); line-height: 1.6; }
+  .btn-start { width: 200px; height: 44px; font-size: 17px; }
+  .back {
+    position: absolute;
+    top: 14px; left: 18px;
+    color: rgba(244,234,216,.8);
+    font-size: 12px;
+    letter-spacing: 2px;
+    z-index: 3;
+  }
+</style>
+</head>
+<body>
+<div class="stage bg-brick">
+  <div class="back">‹ 返回首页</div>
+  <svg class="wave-band" style="bottom:0" width="812" height="40" viewBox="0 0 812 40" preserveAspectRatio="none">
+    <path d="M0,20 Q25,4 50,20 T100,20 T150,20 T200,20 T250,20 T300,20 T350,20 T400,20 T450,20 T500,20 T550,20 T600,20 T650,20 T700,20 T750,20 T800,20 T850,20"
+      fill="none" stroke="#e8c95f" stroke-width="1.4" opacity=".6"/>
+  </svg>
+
+  <div class="lobby">
+    <section class="panel-left">
+      <div class="panel-title">房 间 码</div>
+      <div class="room-code">
+        <span>4</span><span>8</span><span>3</span><span>6</span>
+      </div>
+      <button class="btn btn-gold">复制邀请链接</button>
+      <div class="share-hint">微信内点右上角「···」分享给亲友<br>链接 6 小时内有效 · 房间 24 小时有效</div>
+      <div class="rounds-pick">
+        <div class="on">4 局 · 约 20 分钟</div>
+        <div>8 局 · 约 40 分钟</div>
+      </div>
+    </section>
+
+    <section class="panel-right">
+      <div class="seats">
+        <div class="seat">
+          <div class="avatar">阿</div>
+          <div>
+            <div class="name">阿海（我）</div>
+            <div class="status ready">✓ 已准备</div>
+          </div>
+          <span class="badge badge-dealer tag">房主</span>
+        </div>
+        <div class="seat">
+          <div class="avatar">珠</div>
+          <div>
+            <div class="name">珠珠</div>
+            <div class="status wait">等待准备…</div>
+          </div>
+        </div>
+        <div class="seat">
+          <div class="avatar bot">机</div>
+          <div>
+            <div class="name">陪打电脑</div>
+            <div class="status wait">空位自动补齐</div>
+          </div>
+        </div>
+        <div class="seat empty">虚位以待 · 分享房间码邀请</div>
+      </div>
+      <div class="bottom-bar">
+        <div class="tip">人齐后电脑自动补齐空位；掉线保留座位 90 秒，超时电脑托管，回来可接管。</div>
+        <button class="btn btn-gold btn-start">开始（2/4）</button>
+      </div>
+    </section>
+  </div>
+</div>
+<script>
+  function fit() {
+    const s = document.querySelector('.stage');
+    const k = Math.min(innerWidth / 812, innerHeight / 375);
+    s.style.transform = 'scale(' + k + ')';
+  }
+  addEventListener('resize', fit); fit();
+</script>
+</body>
+</html>

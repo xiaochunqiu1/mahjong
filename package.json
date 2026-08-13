@@ -1,0 +1,31 @@
+{
+  "name": "quanzhou-youjin-mahjong",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "泉州游金麻将 - 单机可玩版（纯规则引擎 + AI + React 界面）",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@cloudbase/js-sdk": "^3.7.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@cloudbase/cli": "^3.7.1",
+    "@cloudbase/node-sdk": "^3.18.3",
+    "@types/node": "^22.10.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tsx": "^4.23.5",
+    "typescript": "^5.7.0",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8"
+  }
+}

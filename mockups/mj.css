@@ -1,0 +1,309 @@
+/* ============================================================
+   泉州游金麻将 · 视觉稿设计系统
+   「古厝新国潮」：砖红 / 墨青 / 暖米白 / 鎏金 / 海丝青绿
+   标题：思源宋体  功能文字：思源黑体
+   画布：812×375（iPhone 横屏），按视口等比缩放，居中留安全区
+   ============================================================ */
+
+:root {
+  --brick: #a63a2e;        /* 砖红主色 */
+  --brick-deep: #7e2a21;   /* 砖红深 */
+  --ink: #1f3a3d;          /* 墨青 */
+  --ink-deep: #12262a;     /* 墨青深（牌桌毡面） */
+  --rice: #f4ead8;         /* 暖米白 */
+  --rice-dim: #e3d5bd;
+  --gold: #c9a227;         /* 鎏金 */
+  --gold-light: #e8c95f;
+  --sea: #2e7d6b;          /* 海丝青绿 */
+  --sea-light: #4aa48f;
+  --danger: #c0392b;
+  --serif: "Noto Serif SC", "Source Han Serif SC", "SimSun", serif;
+  --sans: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  background: #0d1b1e;
+  font-family: var(--sans);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* 16:9 舞台：按视口等比缩放 */
+.stage {
+  width: 812px;
+  height: 375px;
+  flex: none;
+  position: relative;
+  overflow: hidden;
+  transform-origin: center center;
+  border-radius: 6px;
+  box-shadow: 0 12px 60px rgba(0,0,0,.6);
+}
+
+/* ---------- 背景纹理 ---------- */
+
+/* 红砖纹理：错位砖缝 */
+.bg-brick {
+  background:
+    linear-gradient(160deg, rgba(126,42,33,.92), rgba(166,58,46,.88)),
+    repeating-linear-gradient(0deg,
+      transparent 0 18px, rgba(0,0,0,.18) 18px 20px),
+    repeating-linear-gradient(90deg,
+      transparent 0 58px, rgba(0,0,0,.18) 58px 60px),
+    var(--brick);
+}
+
+/* 海浪纹（SVG 内联） */
+.wave-band {
+  position: absolute;
+  left: 0; right: 0;
+  pointer-events: none;
+  opacity: .5;
+}
+
+/* 燕尾脊剪影 */
+.ridge {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  pointer-events: none;
+}
+
+/* ---------- 通用组件 ---------- */
+
+.btn {
+  font-family: var(--sans);
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 15px;
+  letter-spacing: 2px;
+  transition: transform .12s, box-shadow .12s;
+}
+.btn:active { transform: scale(.96); }
+
+.btn-gold {
+  background: linear-gradient(180deg, var(--gold-light), var(--gold));
+  color: #3a2c05;
+  box-shadow: 0 3px 0 #8a6d14, 0 6px 14px rgba(0,0,0,.35);
+  font-weight: 700;
+}
+.btn-sea {
+  background: linear-gradient(180deg, var(--sea-light), var(--sea));
+  color: #eaf6f1;
+  box-shadow: 0 3px 0 #1c5747, 0 6px 14px rgba(0,0,0,.35);
+}
+.btn-ghost {
+  background: rgba(244,234,216,.12);
+  color: var(--rice);
+  border: 1px solid rgba(244,234,216,.4);
+}
+
+/* 鎏金标题装饰 */
+.title-ornament {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  justify-content: center;
+}
+.title-ornament::before, .title-ornament::after {
+  content: "";
+  width: 64px; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold));
+}
+.title-ornament::after {
+  background: linear-gradient(90deg, var(--gold), transparent);
+}
+
+/* ---------- 麻将牌组件（视觉稿占位：CSS 绘制图案） ---------- */
+/* 注意：终版必须替换为许可清晰的绘制素材，此处仅表达布局与比例 */
+
+.tile {
+  width: 30px;
+  height: 42px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #fdfaf2 0%, #f4ead8 78%, #d9c9a8 100%);
+  box-shadow: 0 2px 3px rgba(0,0,0,.4), inset 0 -3px 0 rgba(166,58,46,.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--serif);
+  color: var(--ink);
+  position: relative;
+  flex: none;
+}
+
+/* 3x3 点阵容器（筒/条共用） */
+.pip-grid {
+  width: 82%;
+  height: 86%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  place-items: center;
+}
+.pip-grid .off { visibility: hidden; }
+.pip-grid i { display: block; }
+
+/* 筒：同心圆环（红环 + 米白隔圈 + 蓝芯，传统筒子样式；中心点反色强调） */
+.pip-grid .dot {
+  width: 82%; height: 82%;
+  border-radius: 50%;
+  background: #c0392b;
+  position: relative;
+  box-shadow: inset 0 0 0 .5px rgba(18,38,42,.4);
+}
+.pip-grid .dot::after {
+  content: "";
+  position: absolute;
+  inset: 24%;
+  border-radius: 50%;
+  background: #1f5fa8;
+  box-shadow: 0 0 0 1.5px #f4ead8;
+}
+.pip-grid .dot.red { background: #1f5fa8; }
+.pip-grid .dot.red::after { background: #c0392b; }
+/* 1 筒：大同心圆（红外环 / 蓝中环 / 红芯） */
+.big-dot {
+  width: 64%; height: 48%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%,
+    #c0392b 0 16%, #f4ead8 16% 24%,
+    #1f5fa8 24% 52%, #f4ead8 52% 60%,
+    #c0392b 60% 100%);
+  box-shadow: inset 0 0 0 1.5px rgba(18,38,42,.4);
+}
+
+/* 条：分节竹棍（竹绿三段 + 米白竹节线；中心条传统红竹） */
+.pip-grid .bar {
+  width: 46%; height: 86%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #35a367 0%, #1e7a4f 55%, #155c39 100%);
+  position: relative;
+  box-shadow: inset 0 0 0 .5px rgba(18,38,42,.35);
+}
+.pip-grid .bar::before, .pip-grid .bar::after {
+  content: "";
+  position: absolute;
+  left: -6%; right: -6%;
+  height: 7%;
+  background: #e9ddc4;
+  border-radius: 1px;
+}
+.pip-grid .bar::before { top: 30%; }
+.pip-grid .bar::after { top: 63%; }
+.pip-grid .bar.red { background: linear-gradient(90deg, #d94f3d 0%, #c0392b 60%, #9c2b1f 100%); }
+/* 1 条：单根粗竹 */
+.big-bar {
+  width: 30%; height: 82%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #35a367 0%, #1e7a4f 55%, #155c39 100%);
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(18,38,42,.35);
+}
+.big-bar::before, .big-bar::after {
+  content: "";
+  position: absolute;
+  left: -8%; right: -8%;
+  height: 6%;
+  background: #e9ddc4;
+  border-radius: 1px;
+}
+.big-bar::before { top: 30%; }
+.big-bar::after { top: 63%; }
+
+/* 万：上数字（黑）下萬（红） */
+.face.wan { display: flex; flex-direction: column; align-items: center; line-height: 1.05; }
+.face.wan b { font-size: 15px; font-weight: 700; color: #1c2b2e; }
+.face.wan em { font-style: normal; font-size: 13px; font-weight: 900; color: #c0392b; }
+
+/* 字牌 */
+.face.wind { font-size: 18px; font-weight: 900; color: #1c2b2e; }
+.face.zhong { font-size: 18px; font-weight: 900; color: #c0392b; }
+.face.fa { font-size: 17px; font-weight: 900; color: #1e7a4f; }
+.face.bai { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.face.bai i {
+  width: 52%; height: 62%;
+  border: 2px solid #3a6ea5;
+  border-radius: 2px;
+}
+.face.flower { font-size: 15px; font-weight: 900; color: #a63a2e; }
+
+/* 金牌：鎏金框 + 「金」字角标（不只依赖颜色） */
+.tile.gold {
+  box-shadow: 0 0 0 2px var(--gold), 0 2px 6px rgba(201,162,39,.6);
+}
+.tile.gold::after {
+  content: "金";
+  position: absolute;
+  top: -7px; right: -7px;
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--gold-light), var(--gold));
+  color: #3a2c05;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,.4);
+}
+
+/* 牌背 */
+.tile.back {
+  background: linear-gradient(180deg, #2e7d6b 0%, #1c5747 100%);
+  box-shadow: 0 2px 3px rgba(0,0,0,.4), inset 0 0 0 2px rgba(232,201,95,.35);
+}
+.tile.back::before {
+  content: "";
+  width: 14px; height: 20px;
+  border: 1.5px solid rgba(232,201,95,.55);
+  border-radius: 2px;
+}
+
+/* 小号牌（牌河/他家） */
+.tile.sm { width: 22px; height: 31px; border-radius: 3px; }
+.tile.sm .face.wan b { font-size: 11px; }
+.tile.sm .face.wan em { font-size: 9px; }
+.tile.sm .face.wind, .tile.sm .face.zhong { font-size: 13px; }
+.tile.sm .face.fa { font-size: 12px; }
+.tile.sm .face.bai i { border-width: 1.5px; }
+.tile.sm .face.flower { font-size: 11px; }
+.tile.sm.gold::after { width: 11px; height: 11px; font-size: 7px; top: -5px; right: -5px; }
+
+/* 竖放牌（左右两家手牌背） */
+.tile.vback {
+  width: 26px; height: 36px;
+  background: linear-gradient(90deg, #2e7d6b 0%, #1c5747 100%);
+  box-shadow: 0 2px 3px rgba(0,0,0,.4), inset 0 0 0 2px rgba(232,201,95,.3);
+  border-radius: 3px;
+}
+
+/* ---------- 徽标 ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.badge-dealer {
+  background: var(--gold);
+  color: #3a2c05;
+  font-weight: 700;
+}
+.badge-youjin {
+  background: linear-gradient(90deg, var(--brick), var(--gold));
+  color: #fff8e7;
+  font-weight: 700;
+  border: 1px solid var(--gold-light);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201,162,39,.7); }
+  50% { box-shadow: 0 0 0 5px rgba(201,162,39,0); }
+}

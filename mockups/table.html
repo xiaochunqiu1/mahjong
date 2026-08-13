@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>泉州游金麻将 · 牌桌（视觉稿）</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mj.css">
+<style>
+  .table { background: radial-gradient(ellipse at 50% 42%, #26524f 0%, var(--ink-deep) 72%); }
+
+  /* ---------- 顶栏信息 ---------- */
+  .hud {
+    position: absolute;
+    top: 8px; left: 14px;
+    display: flex; gap: 8px;
+    z-index: 5;
+  }
+  .hud .chip {
+    background: rgba(244,234,216,.12);
+    border: 1px solid rgba(244,234,216,.3);
+    color: var(--rice);
+    border-radius: 6px;
+    font-size: 11px;
+    padding: 3px 10px;
+    letter-spacing: 1px;
+  }
+  .hud .chip b { color: var(--gold-light); font-weight: 700; }
+
+  .gold-slot {
+    position: absolute;
+    left: 50%; top: 178px;
+    transform: translate(-50%, -50%) translateX(-92px);
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    z-index: 5;
+  }
+  .gold-slot .label {
+    color: rgba(244,234,216,.85);
+    font-size: 10px;
+    letter-spacing: 2px;
+  }
+  .sys-icons {
+    position: absolute; top: 8px; right: 14px;
+    display: flex; gap: 8px; z-index: 5;
+  }
+  .sys-icons .btn { width: 34px; height: 26px; font-size: 12px; letter-spacing: 0; }
+
+  /* ---------- 玩家信息卡 ---------- */
+  .pinfo {
+    position: absolute;
+    display: flex; align-items: center; gap: 7px;
+    z-index: 4;
+  }
+  .pinfo .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--sea-light), var(--sea));
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--serif); font-size: 16px; color: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,.4);
+    flex: none;
+  }
+  .pinfo .avatar.bot { background: linear-gradient(135deg, #8a93a6, #5a6373); }
+  .pinfo .nm { color: var(--rice); font-size: 11px; letter-spacing: 1px; }
+  .pinfo .sc { color: var(--gold-light); font-size: 11px; font-weight: 700; }
+  .pinfo .tags { display: flex; gap: 4px; margin-top: 2px; }
+  .pinfo.active .avatar { box-shadow: 0 0 0 2px var(--gold-light), 0 2px 8px rgba(0,0,0,.5); }
+
+  /* ---------- 各家手牌背 ---------- */
+  .backs-top {
+    position: absolute; top: 46px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 1px; z-index: 3;
+  }
+  .backs-left, .backs-right {
+    position: absolute;
+    display: flex; flex-direction: column; gap: 1px;
+    z-index: 3;
+  }
+  .backs-left { left: 30px; top: 96px; }
+  .backs-right { right: 30px; top: 96px; }
+
+  /* ---------- 牌河 ---------- */
+  .river { position: absolute; display: flex; flex-wrap: wrap; gap: 2px; z-index: 2; }
+  .river-mine {
+    left: 50%; top: 218px; transform: translateX(-50%);
+    width: 300px; justify-content: center;
+  }
+  .river-top {
+    left: 50%; top: 118px; transform: translateX(-50%);
+    width: 300px; justify-content: center;
+  }
+  .river-left { left: 96px; top: 128px; width: 120px; }
+  .river-right { right: 96px; top: 128px; width: 120px; justify-content: flex-end; }
+  .river .just { outline: 2px solid var(--gold-light); outline-offset: 1px; border-radius: 3px; }
+
+  /* ---------- 中央罗盘 ---------- */
+  .compass {
+    position: absolute;
+    left: 50%; top: 178px;
+    transform: translate(-50%, -50%);
+    width: 86px; height: 86px;
+    border-radius: 12px;
+    background: rgba(18,38,42,.85);
+    border: 1px solid rgba(201,162,39,.5);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    z-index: 3;
+  }
+  .compass div {
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--serif);
+    font-size: 16px;
+    color: rgba(244,234,216,.45);
+  }
+  .compass .now { color: var(--gold-light); font-weight: 900; text-shadow: 0 0 8px rgba(232,201,95,.8); }
+
+  /* ---------- 我的区域 ---------- */
+  .my-melds {
+    position: absolute;
+    left: 16px; bottom: 66px;
+    display: flex; gap: 6px;
+    z-index: 4;
+  }
+  .meld-group { display: flex; gap: 1px; }
+  .my-flowers {
+    position: absolute;
+    left: 16px; bottom: 30px;
+    display: flex; gap: 3px; align-items: center;
+    z-index: 4;
+  }
+  .flower-chip {
+    background: rgba(201,162,39,.2);
+    border: 1px solid var(--gold);
+    color: var(--gold-light);
+    font-size: 10px;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: var(--serif);
+  }
+
+  .my-hand {
+    position: absolute;
+    bottom: 18px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 3px;
+    z-index: 4;
+  }
+  .my-hand .drawn { margin-left: 12px; }
+  .my-hand .tile:hover { transform: translateY(-6px); }
+  .my-hand .tile { transition: transform .1s; cursor: pointer; }
+
+  /* ---------- 操作区（右下安全区） ---------- */
+  .actions {
+    position: absolute;
+    right: 22px; bottom: 16px;
+    display: flex; flex-direction: column; gap: 6px;
+    align-items: flex-end;
+    z-index: 6;
+  }
+  .actions .row { display: flex; gap: 6px; }
+  .actions .btn {
+    min-width: 48px; height: 34px;
+    font-size: 14px; letter-spacing: 2px;
+    padding: 0 10px;
+  }
+  .timer {
+    color: var(--rice);
+    font-size: 11px;
+    letter-spacing: 1px;
+    background: rgba(18,38,42,.7);
+    border: 1px solid rgba(201,162,39,.5);
+    border-radius: 999px;
+    padding: 2px 10px;
+  }
+  .timer b { color: var(--gold-light); }
+</style>
+</head>
+<body>
+<div class="stage table">
+
+  <!-- 顶栏 -->
+  <div class="hud">
+    <span class="chip">局数 <b>2/4</b></span>
+    <span class="chip">余牌 <b>86</b></span>
+    <span class="chip">本场 <b>+7</b></span>
+  </div>
+  <div class="gold-slot">
+    <div class="tile sm gold" data-k="31"></div>
+    <span class="label">金牌</span>
+  </div>
+  <div class="sys-icons">
+    <button class="btn btn-ghost">规</button>
+    <button class="btn btn-ghost">设</button>
+  </div>
+
+  <!-- 对家 -->
+  <div class="pinfo" style="top:6px; left:50%; transform:translateX(-50%);">
+    <div class="avatar bot">机</div>
+    <div>
+      <div class="nm">陪打电脑·南</div>
+      <div class="sc">-2</div>
+    </div>
+  </div>
+  <div class="backs-top">
+    <div class="tile back sm"></div><div class="tile back sm"></div><div class="tile back sm"></div><div class="tile back sm"></div><div class="tile back sm"></div><div class="tile back sm"></div><div class="tile back sm"></div><div class="tile back sm"></div><div class="tile back sm"></div><div class="tile back sm"></div><div class="tile back sm"></div><div class="tile back sm"></div><div class="tile back sm"></div>
+  </div>
+
+  <!-- 左家 -->
+  <div class="pinfo" style="left:18px; top:60px;">
+    <div class="avatar">珠</div>
+    <div>
+      <div class="nm">珠珠·西</div>
+      <div class="sc">-2</div>
+      <div class="tags"><span class="badge badge-dealer">庄</span></div>
+    </div>
+  </div>
+  <div class="backs-left">
+    <div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div>
+  </div>
+
+  <!-- 右家（单游状态示例：徽章并入信息卡，与「庄」同一语言） -->
+  <div class="pinfo" style="right:14px; top:60px;">
+    <div style="text-align:right;">
+      <div class="nm">阿海·东</div>
+      <div class="sc">+12</div>
+      <div class="tags" style="justify-content:flex-end;"><span class="badge badge-youjin">⚡ 单游中</span></div>
+    </div>
+    <div class="avatar">阿</div>
+  </div>
+  <div class="backs-right">
+    <div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div><div class="tile vback"></div>
+  </div>
+
+  <!-- 牌河 -->
+  <div class="river river-top">
+    <div class="tile sm" data-k="8"></div>
+    <div class="tile sm" data-k="30"></div>
+    <div class="tile sm" data-k="20"></div>
+    <div class="tile sm" data-k="15"></div>
+    <div class="tile sm" data-k="32"></div>
+    <div class="tile sm" data-k="0"></div>
+  </div>
+  <div class="river river-left">
+    <div class="tile sm" data-k="22"></div>
+    <div class="tile sm" data-k="27"></div>
+    <div class="tile sm" data-k="16"></div>
+    <div class="tile sm" data-k="1"></div>
+    <div class="tile sm just" data-k="23"></div>
+  </div>
+  <div class="river river-right">
+    <div class="tile sm" data-k="28"></div>
+    <div class="tile sm" data-k="3"></div>
+    <div class="tile sm" data-k="33"></div>
+    <div class="tile sm" data-k="17"></div>
+    <div class="tile sm" data-k="18"></div>
+  </div>
+  <div class="river river-mine">
+    <div class="tile sm" data-k="10"></div>
+    <div class="tile sm" data-k="29"></div>
+    <div class="tile sm" data-k="7"></div>
+    <div class="tile sm" data-k="13"></div>
+    <div class="tile sm" data-k="2"></div>
+    <div class="tile sm" data-k="32"></div>
+    <div class="tile sm" data-k="24"></div>
+    <div class="tile sm" data-k="26"></div>
+  </div>
+
+  <!-- 中央罗盘 -->
+  <div class="compass">
+    <div>西</div><div class="now">南</div>
+    <div>北</div><div>东</div>
+  </div>
+
+  <!-- 我的副露与花 -->
+  <div class="my-melds">
+    <div class="meld-group">
+      <div class="tile sm" data-k="5"></div>
+      <div class="tile sm" data-k="5"></div>
+      <div class="tile sm" data-k="5"></div>
+    </div>
+  </div>
+  <div class="my-flowers">
+    <span class="flower-chip">春</span>
+    <span class="flower-chip">菊</span>
+  </div>
+
+  <!-- 我的手牌（17 张：16 + 摸进的金牌） -->
+  <div class="my-hand">
+    <div class="tile" data-k="0"></div>
+    <div class="tile" data-k="1"></div>
+    <div class="tile" data-k="2"></div>
+    <div class="tile" data-k="3"></div>
+    <div class="tile" data-k="4"></div>
+    <div class="tile" data-k="6"></div>
+    <div class="tile" data-k="10"></div>
+    <div class="tile" data-k="11"></div>
+    <div class="tile" data-k="12"></div>
+    <div class="tile" data-k="14"></div>
+    <div class="tile" data-k="15"></div>
+    <div class="tile" data-k="16"></div>
+    <div class="tile" data-k="22"></div>
+    <div class="tile" data-k="23"></div>
+    <div class="tile" data-k="24"></div>
+    <div class="tile" data-k="27"></div>
+    <div class="tile gold drawn" data-k="31"></div>
+  </div>
+
+  <!-- 操作区：响应窗口示例（8 秒） -->
+  <div class="actions">
+    <span class="timer">响应 <b>8</b>s</span>
+    <div class="row">
+      <button class="btn btn-sea">吃</button>
+      <button class="btn btn-sea">碰</button>
+      <button class="btn btn-sea">杠</button>
+    </div>
+    <div class="row">
+      <button class="btn btn-gold">胡</button>
+      <button class="btn btn-ghost">过</button>
+    </div>
+  </div>
+</div>
+<script src="tiles.js"></script>
+<script>
+  function fit() {
+    const s = document.querySelector('.stage');
+    const k = Math.min(innerWidth / 812, innerHeight / 375);
+    s.style.transform = 'scale(' + k + ')';
+  }
+  addEventListener('resize', fit); fit();
+</script>
+</body>
+</html>

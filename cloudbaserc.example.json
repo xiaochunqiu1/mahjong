@@ -1,0 +1,19 @@
+{
+  "version": "2.0",
+  "envId": "YOUR_ENV_ID",
+  "functionRoot": "cloudfunctions",
+  "functions": [
+    {
+      "name": "room-api",
+      "timeout": 30,
+      "memorySize": 256,
+      "handler": "index.main",
+      "runtime": "Nodejs20.19",
+      "installDependency": true,
+      "envVariables": {
+        "TRTC_SDKAPPID": "YOUR_SDKAPPID",
+        "TRTC_SECRETKEY": "YOUR_SECRETKEY"
+      }
+    }
+  ]
+}
