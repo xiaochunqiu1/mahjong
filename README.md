@@ -61,7 +61,7 @@ skills/        方法论沉淀（见下）
 - **`skills/free-cloud`** — 腾讯云 CloudBase 免费部署（一个环境全包：静态托管 + 云函数 + 数据库 + 网关，永久免费二级域名，国内秒开），含完整流程/命令/踩坑/打包脚本
 - **`skills/web-voice`** — 网页实时语音接入（TRTC v5：userSig TLS-Sig v2 签发、麦克风/喇叭双控、v5 API 踩坑全记录），含可直接拷贝的签名脚本
 
-> 独立仓库 [my-skills](https://github.com/) 亦收录这两份技能。
+> 独立仓库 [my-skills](https://github.com/xiaochunqiu1/my-skills) 亦收录这两份技能。
 
 ## 🚢 部署
 
