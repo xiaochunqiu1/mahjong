@@ -5,9 +5,7 @@
  * 浏览器直接调百度 API 又有 CORS + 密钥暴露问题 → 云函数中转。
  *
  * 入参：GET/POST { text: "八筒", per?: 0 }
- * 返回：JSON { ok: true, audio: "<mp3 base64>" }（带 CORS）
- * 注：不用 isBase64Encoded 二进制直出——CloudBase 网关对该模式返回空 body（实测 chunked 流为 0 字节），
- *     改为 JSON 透传 base64，由前端 atob 解码为 AudioBuffer。
+ * 返回：audio/mp3 二进制（带 CORS）
  *
  * 环境变量（CloudBase 云函数配置里设置）：
  *   BAIDU_TTS_API_KEY    百度 AI 开放平台应用 API Key
@@ -97,8 +95,9 @@ export async function main(event: any): Promise<any> {
     }
     return {
       statusCode: 200,
-      headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' },
-      body: JSON.stringify({ ok: true, audio: b64 }),
+      headers: { ...CORS, 'Content-Type': 'audio/mp3', 'Cache-Control': 'public, max-age=86400' },
+      isBase64Encoded: true,
+      body: b64,
     };
   } catch (e) {
     return { statusCode: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
