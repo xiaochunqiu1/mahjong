@@ -18,7 +18,7 @@ import { aiDecide } from '../src/game/ai.js';
 
 export const BOT_AI_LEVEL = 0.35; // 陪打电脑水平：明显弱于真人（不胡牌、少碰杠）
 export const BOT_GREED = 0.05;
-export const BOT_STEP_MS = 1100; // 陪打电脑动作节流：客户端 poll 1000ms 步进 → 实际出牌间隔约 2s（单机 aiDelayMs 2200ms 实际约 2.2s，取更小值让好友房提速到同档）
+export const BOT_STEP_MS = 2200; // 陪打电脑动作节流：与单机 aiDelayMs 一致，保证三家电脑节奏均匀、不秒响应（真人动作也计时，见 submitAction）
 export const RESPONSE_MS = 8_000; // 响应窗口（与单机 controller 对齐）
 export const TURN_MS = 30_000;    // 主回合（出牌/摸牌）
 
@@ -232,6 +232,9 @@ export class RoomManager {
     const beforePhase = room.state.phase.t;
     const prevLogLen = room.state.log.length;
     applyAction(room.state, seat, action);
+    // 真人动作也计时（与单机 controller 一致：有信息量的动作重置 AI 节流）——
+    // 否则真人出牌后 botTickAt 早已过期，响应窗口第一家 bot 会零延迟"秒响应"
+    if (action.type !== 'draw') room.botTickAt = Date.now();
     // 只在阶段切换时重设倒计时（响应阶段每人提交不重置，否则 8s 窗口被不断后移）
     if (room.state.phase.t !== beforePhase) room.turnStartedAt = Date.now();
     // 只广播**公共动作**（出牌/碰/吃/杠/胡/宣告）——摸牌/杠补是各玩家私有手牌，不能广播
