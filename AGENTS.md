@@ -22,13 +22,13 @@
 - 设计决策 D1–D6、经济红线（固定积分零和、不实现金雀/金龙等）、AI 只读公开信息，详见 `docs/rules.md`
 - 跨端铁律：单机版+好友房、微信+系统浏览器必须行为一致，改一边要自查另一边
 - 语音：TRTC v5（trtc-sdk-v5 CDN），userSig 服务端 TLS-Sig v2 算法（zlib+base64url），密钥在云函数环境变量 TRTC_SDKAPPID/TRTC_SECRETKEY
-- 牌名语音：`cloudfunctions/tts`（百度短文本 TTS 代理，per=4132 度阿闽；返回 JSON base64——CloudBase 网关对 isBase64Encoded 二进制直出不稳，前端 atob 解码）。本机 curl 对 chunked 响应误报 0 字节，验证 HTTP 接口用 Node fetch
+- 牌名语音：`cloudfunctions/tts`（百度短文本 TTS 代理，per=4132 度阿闽；返回 audio/mp3 二进制 isBase64Encoded 直出，前端 arrayBuffer 解码）。**本机 curl 对 chunked 响应误报 0 字节，验证 HTTP 接口用 Node fetch**
 - 交付铁律：改完必须先验证（测试/实测）再交付，绝不让用户反复试错
 
 ## 当前状态（2026-08-14）
 - 游戏名：**开麦麻将**（2026-08-13 整体改名，玩法术语"游金/单双三游"保留）
-- 线上已部署：CloudBase 静态托管 `qzmj-d8ge0bj5g9257711b-1463592371.tcloudbaseapp.com`，云函数 room-api（含 getTrtcSign）+ **tts（百度牌名语音，/tts-api，JSON base64）**
+- 线上已部署：CloudBase 静态托管 `qzmj-d8ge0bj5g9257711b-1463592371.tcloudbaseapp.com`，云函数 room-api（含 getTrtcSign + 好友房 bot 节奏对齐单机 2200ms）+ **tts（百度牌名语音，/tts-api，二进制直出）**
 - GitHub：github.com/xiaochunqiu1/mahjong（项目仓库，公开）+ github.com/xiaochunqiu1/my-skills（技能仓库，公开）；凭证用 global `http.https://github.com/.extraHeader`（更新跑 ~/.workbuddy/scripts/update-git-token.sh）
-- 已完成：单机可玩、好友房 7 接口+轮询、语音双按钮（麦关喇叭开）、微信分享卡 og-image、BGM/喊牌/烟花优化
+- 已完成：单机可玩、好友房 7 接口+轮询、语音双按钮（麦关喇叭开）、微信分享卡 og-image、BGM/喊牌/烟花优化、好友房 bot 节奏与单机一致
 - 待办：真人试玩微调 aiLevel/greed（胜率 50% 校准）、方言语音（泉州话验听）、全设备横屏测试
 - 语音回滚基线：`.workbuddy/backup/no-voice-20260812/restore.sh`（用户说"回到未开麦版本"时执行）

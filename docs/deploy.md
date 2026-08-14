@@ -46,9 +46,9 @@ npx tcb config update fn room-api     # 交互选 Merge，或控制台配置
 
 ## tts 云函数（牌名语音，2026-08-14 纳入统一部署）
 - 功能：百度短文本 TTS 代理——微信/旧浏览器无 speechSynthesis 时，把牌名/动作词合成 mp3
-- 路由：HTTP 网关 `/tts-api`；返回 `JSON { ok, audio: "<mp3 base64>" }`（**不用 isBase64Encoded 二进制直出**——网关对该模式实测不稳定；前端 atob 解码）
+- 路由：HTTP 网关 `/tts-api`；返回 **audio/mp3 二进制**（`isBase64Encoded: true`，前端 arrayBuffer 解码；8-14 曾误改 JSON 方案导致声音异常，已回滚二进制直出——**保持二进制方案，勿改**）
 - 部署：`bash cloudfunctions/tts/build.sh`（esbuild 单文件，零 npm 依赖，installDependency=false）→ `printf '\n' | npx tcb fn deploy tts --force`
-- 验证：Node fetch POST `{text:'碰', per:4132}` → 返回 JSON audio 可解出 MP3；**本机 curl 会误报 0 字节（chunked 读取 bug），勿用 curl 验证**
+- 验证：Node fetch POST `{text:'碰', per:4132}` → 响应 content-type `audio/mp3` 且首字节为 MP3 帧（`ff`）；**本机 curl 会误报 0 字节（chunked 读取 bug），勿用 curl 验证**
 
 ## 踩过的坑
 - `fn deploy --dir <目录>` 表面成功但代码不生效——用根 cloudbaserc.json 标准结构
