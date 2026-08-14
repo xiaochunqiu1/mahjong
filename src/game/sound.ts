@@ -100,8 +100,13 @@ function loadTtsBuffer(text: string): Promise<AudioBuffer | null> {
       if (!c) return null;
       const res = await fetch(url);
       if (!res.ok) return null;
-      const ab = await res.arrayBuffer();
-      const buf = await c.decodeAudioData(ab);
+      // 云函数返回 JSON { ok, audio: "<mp3 base64>" }（网关对二进制直出有 bug，改用 JSON 透传）
+      const j = await res.json();
+      if (!j.ok || typeof j.audio !== 'string') return null;
+      const bin = atob(j.audio);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      const buf = await c.decodeAudioData(arr.buffer);
       ttsBufferCache.set(text, buf);
       return buf;
     } catch { return null; }

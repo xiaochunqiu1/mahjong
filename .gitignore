@@ -18,6 +18,9 @@ vite.config.ts.timestamp-*.mjs
 
 # 云函数构建产物（build.sh 生成）
 cloudfunctions/room-api/index.js
+cloudfunctions/tts/index.js
+cloudfunctions/tts/dist/
+cloudfunctions/tts/tts.zip
 
 # 版权不明的音频素材（线上版已含 BGM；原始素材不随仓库分发）
 麻将背景乐.mp3

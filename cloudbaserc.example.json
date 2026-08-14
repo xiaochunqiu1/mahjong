@@ -14,6 +14,19 @@
         "TRTC_SDKAPPID": "YOUR_SDKAPPID",
         "TRTC_SECRETKEY": "YOUR_SECRETKEY"
       }
+    },
+    {
+      "name": "tts",
+      "timeout": 20,
+      "memorySize": 256,
+      "handler": "index.main",
+      "runtime": "Nodejs18.15",
+      "installDependency": false,
+      "envVariables": {
+        "BAIDU_TTS_API_KEY": "YOUR_BAIDU_API_KEY",
+        "BAIDU_TTS_SECRET_KEY": "YOUR_BAIDU_SECRET_KEY",
+        "BAIDU_TTS_PER": "4132"
+      }
     }
   ]
 }

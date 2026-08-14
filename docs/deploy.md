@@ -41,7 +41,14 @@ npx tcb config update fn room-api     # 交互选 Merge，或控制台配置
 
 ## 云函数环境变量
 - `TRTC_SDKAPPID` / `TRTC_SECRETKEY`：TRTC 控制台应用密钥（2026-08-12 已配置），用于 getTrtcSign 签发 userSig
-- 未配置时 getTrtcSign 返回「语音未开通」，前端按钮降级提示，不影响打牌
+- `BAIDU_TTS_API_KEY` / `BAIDU_TTS_SECRET_KEY` / `BAIDU_TTS_PER=4132`：百度短文本 TTS（牌名语音，度阿闽；百度应用「泉州麻将」AppID 124124455，臻品音库免费额度）
+- 未配置时 getTrtcSign 返回「语音未开通」；tts 未配置返回 503，前端降级用音效，不影响打牌
+
+## tts 云函数（牌名语音，2026-08-14 纳入统一部署）
+- 功能：百度短文本 TTS 代理——微信/旧浏览器无 speechSynthesis 时，把牌名/动作词合成 mp3
+- 路由：HTTP 网关 `/tts-api`；返回 `JSON { ok, audio: "<mp3 base64>" }`（**不用 isBase64Encoded 二进制直出**——网关对该模式实测不稳定；前端 atob 解码）
+- 部署：`bash cloudfunctions/tts/build.sh`（esbuild 单文件，零 npm 依赖，installDependency=false）→ `printf '\n' | npx tcb fn deploy tts --force`
+- 验证：Node fetch POST `{text:'碰', per:4132}` → 返回 JSON audio 可解出 MP3；**本机 curl 会误报 0 字节（chunked 读取 bug），勿用 curl 验证**
 
 ## 踩过的坑
 - `fn deploy --dir <目录>` 表面成功但代码不生效——用根 cloudbaserc.json 标准结构

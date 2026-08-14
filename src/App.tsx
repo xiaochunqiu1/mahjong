@@ -12,18 +12,6 @@ function unlockAudio() {
   // 用户首次交互时解锁 AudioContext + TTS（mobile/微信限制：非手势路径被 suspended/忽略）
   setSoundEnabled(true);
   unlockTTS();
-  // 解锁 HTMLAudio autoplay：用云函数 TTS 真实 URL（首字符预热，第二次零延迟）
-  try {
-    const env = (import.meta as any).env ?? {};
-    const base: string = env.VITE_TCB_URL ?? '';
-    if (base) {
-      const a = new Audio(base.replace(/\/room-api$/, '/tts-api') + '?text=' + encodeURIComponent('碰'));
-      a.muted = true;
-      a.preload = 'auto';
-      a.setAttribute('playsinline', '');
-      a.play().then(() => { a.pause(); }).catch(() => {});
-    }
-  } catch { /* ignore */ }
   // 预热常用牌名 TTS AudioBuffer（后续 createBufferSource.start 即可，无需 fetch）
   void preloadTtsBuffers([
     // 单字 + 动作词
