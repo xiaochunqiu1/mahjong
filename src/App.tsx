@@ -9,13 +9,14 @@ import { setBgmEnabled, setSoundEnabled, unlockTTS, preloadTtsBuffers } from './
 import { Room } from './ui/Room.js';
 
 function unlockAudio() {
-  // 用户首次交互时解锁 AudioContext + TTS（mobile/微信限制：非手势路径被 suspended/忽略）
-  // 尊重设置页的音效开关（此前无条件开启 → 用户在设置里关了音效，进游戏点屏幕又被强制打开）
-  const s = localStorage.getItem('qz-mj-sound');
-  setSoundEnabled(s === null ? true : s !== '0');
-  unlockTTS();
-  // 解锁 HTMLAudio autoplay：用云函数 TTS 真实 URL（首字符预热，第二次零延迟）
+  // 整体 try/catch 包裹：iOS/微信首次手势时 getCtx() 可能抛错（创建 AudioContext 受限），
+  // 必须保证即使音频解锁失败也不阻断后续 window.location.hash 设置 ——否则导航无反应（用户 2026-08-19 实测）
   try {
+    // 尊重设置页的音效开关
+    const s = localStorage.getItem('qz-mj-sound');
+    setSoundEnabled(s === null ? true : s !== '0');
+    unlockTTS();
+    // 解锁 HTMLAudio autoplay
     const env = (import.meta as any).env ?? {};
     const base: string = env.VITE_TCB_URL ?? '';
     if (base) {
@@ -25,18 +26,16 @@ function unlockAudio() {
       a.setAttribute('playsinline', '');
       a.play().then(() => { a.pause(); }).catch(() => {});
     }
-  } catch { /* ignore */ }
-  // 预热常用牌名 TTS AudioBuffer（后续 createBufferSource.start 即可，无需 fetch）
-  void preloadTtsBuffers([
-    // 单字 + 动作词
-    '一', '二', '三', '四', '五', '六', '七', '八', '九', '万', '条', '筒',
-    '东', '南', '西', '北', '中', '发', '白', '白板', '春', '夏', '秋', '冬',
-    '碰', '吃', '杠', '胡', '庄', '单游', '双游',
-    // 牌名组合（数字+字）
-    ...['', '一', '二', '三', '四', '五', '六', '七', '八', '九'].map(d => d + '万'),
-    ...['', '一', '二', '三', '四', '五', '六', '七', '八', '九'].map(d => d + '条'),
-    ...['', '一', '二', '三', '四', '五', '六', '七', '八', '九'].map(d => d + '筒'),
-  ]);
+    // 预热常用牌名 TTS AudioBuffer
+    void preloadTtsBuffers([
+      '一', '二', '三', '四', '五', '六', '七', '八', '九', '万', '条', '筒',
+      '东', '南', '西', '北', '中', '发', '白', '白板', '春', '夏', '秋', '冬',
+      '碰', '吃', '杠', '胡', '庄', '单游', '双游',
+      ...['', '一', '二', '三', '四', '五', '六', '七', '八', '九'].map(d => d + '万'),
+      ...['', '一', '二', '三', '四', '五', '六', '七', '八', '九'].map(d => d + '条'),
+      ...['', '一', '二', '三', '四', '五', '六', '七', '八', '九'].map(d => d + '筒'),
+    ]);
+  } catch (e) { /* ignore — 保证导航能继续 */ }
 }
 
 export default function App() {
