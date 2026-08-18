@@ -15,10 +15,10 @@ function tileSvg(kind: number): string {
 
 /** 牌面组件：kind → 高清 SVG 牌面（riichi-mahjong-tiles，CC0）
  *  花牌无素材 → Front.svg 牌身 + 汉字叠加 */
-export const TileFace = memo(function TileFace({ kind, small, onClickTile, extraCls, style }: {
-  kind: number; small?: boolean; onClickTile?: () => void; extraCls?: string; style?: React.CSSProperties;
+export const TileFace = memo(function TileFace({ kind, small, onClickTile, extraCls, style, selected }: {
+  kind: number; small?: boolean; onClickTile?: () => void; extraCls?: string; style?: React.CSSProperties; selected?: boolean;
 }) {
-  const cls = 'tile' + (small ? ' sm' : '') + (onClickTile ? ' selectable' : '') + (extraCls ? ' ' + extraCls : '');
+  const cls = 'tile' + (small ? ' sm' : '') + (onClickTile ? ' selectable' : '') + (selected ? ' picked' : '') + (extraCls ? ' ' + extraCls : '');
   if (kind >= 34) {
     // 花牌：Front 牌身 + 汉字（riichi 素材无花牌）
     return (

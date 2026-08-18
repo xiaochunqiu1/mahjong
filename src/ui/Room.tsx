@@ -5,6 +5,7 @@ import {
 } from '../game/online.js';
 import { OnlineGame } from './OnlineGame.js';
 import { VoiceSession } from './VoiceSession.js';
+import { SoundPanel } from './SoundPanel.js';
 
 interface Session {
   roomId: string;
@@ -32,6 +33,7 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
   const [busy, setBusy] = useState(false);
   const [voiceMicOn, setVoiceMicOn] = useState(false);      // 大厅麦克风默认关
   const [voiceSpeakerOn, setVoiceSpeakerOn] = useState(true); // 大厅喇叭默认开
+  const [soundPanelOpen, setSoundPanelOpen] = useState(false);
   const pollTimer = useRef<number | null>(null);
   const viewRef = useRef<OnlineRoomView | null>(null);
   viewRef.current = view;
@@ -128,8 +130,9 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
     }
   }, [view?.roomPhase]);
 
-  // ---------- 对局中：交给联机对局组件 ----------
-  if (view && view.roomPhase === 'playing' && session) {
+  // ---------- 对局中 / 房间结束（含最后一局结算页）：交给联机对局组件 ----------
+  // roomPhase='over' 也必须渲染 OnlineGame —— 否则第 4 局结束房间变 over 会直接掉回大厅表单，结算页没机会显示
+  if (view && (view.roomPhase === 'playing' || view.roomPhase === 'over') && session) {
     return (
       <OnlineGame
         view={view}
@@ -183,7 +186,14 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
             {humans.length >= 2 && (
               <>
                 <button className={`btn btn-voice ${voiceMicOn ? '' : 'off'}`} title="麦克风" onClick={() => setVoiceMicOn((v) => !v)}><span className="ic">🎙️</span></button>
-                <button className={`btn btn-voice ${voiceSpeakerOn ? '' : 'off'}`} title="喇叭" onClick={() => setVoiceSpeakerOn((v) => !v)}><span className="ic">🔊</span></button>
+                <button className={`btn btn-voice ${voiceSpeakerOn ? '' : 'off'}`} title="喇叭" onClick={() => setSoundPanelOpen((v) => !v)}><span className="ic">🔊</span></button>
+                {soundPanelOpen && (
+                  <div style={{ position: 'relative' }}>
+                    <SoundPanel showVoice voiceOn={voiceSpeakerOn}
+                      onToggleVoice={() => setVoiceSpeakerOn((v) => !v)}
+                      onClose={() => setSoundPanelOpen(false)} />
+                  </div>
+                )}
               </>
             )}
           </div>

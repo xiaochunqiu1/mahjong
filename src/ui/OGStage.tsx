@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { kindOf } from '../engine/index.js';
 import { TileFace } from './TileFace.js';
+import { SoundPanel } from './SoundPanel.js';
 import { speakTile, speak } from '../game/sound.js';
 
 const WIND = ['东', '南', '西', '北'];
@@ -171,6 +172,20 @@ export function OGStage(props: OGStageProps): ReactNode {
     actions, lastEvent, onLeave, onActDrawn, showActionHint, goldKind,
     roomId, roundNo, rounds, wallCount, deadline } = props;
 
+  // 双击出牌：第一次点选牌(高亮)，再点同一张打出；点别的牌换选
+  const [selectedTile, setSelectedTile] = useState<number | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+
+  const tapHandTile = (t: number) => {
+    if (!myActive || !onActDrawn) return;
+    if (selectedTile === t) {
+      setSelectedTile(null);
+      onActDrawn(t); // 第二次点同一张 → 出牌
+    } else {
+      setSelectedTile(t); // 第一次点 → 选中
+    }
+  };
+
   const [time, setTime] = useState(() => {
     const d = new Date();
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -223,7 +238,14 @@ export function OGStage(props: OGStageProps): ReactNode {
           <button className={`tb-mic ${props.micOn === false ? 'off' : ''}`} title="麦克风" onClick={props.onMic}><span className="ic">🎙️</span></button>
         )}
         {props.showSpeaker && (
-          <button className={`tb-mic ${props.speakerOn === false ? 'off' : ''}`} title="喇叭" onClick={props.onSpeaker}><span className="ic">🔊</span></button>
+          <button className={`tb-mic ${props.speakerOn === false ? 'off' : ''}`} title="喇叭" onClick={() => setPanelOpen((v) => !v)}><span className="ic">🔊</span></button>
+        )}
+        {panelOpen && (
+          <div style={{ position: 'relative' }}>
+            <SoundPanel showVoice={!!props.onSpeaker} voiceOn={props.speakerOn !== false}
+              onToggleVoice={() => props.onSpeaker?.()}
+              onClose={() => setPanelOpen(false)} />
+          </div>
         )}
         <button className="tb-exit" onClick={onLeave}>退出</button>
       </div>
@@ -277,7 +299,8 @@ export function OGStage(props: OGStageProps): ReactNode {
           const extra = (isDrawn ? 'just-drawn ' : '') + (isGold ? 'gold-hand' : '');
           return (
             <TileFace key={t} kind={kindOf(t)} extraCls={extra}
-              onClickTile={myActive && onActDrawn ? () => onActDrawn(t) : undefined} />
+              onClickTile={myActive && onActDrawn ? () => tapHandTile(t) : undefined}
+              selected={selectedTile === t} />
           );
         })}
       </div>

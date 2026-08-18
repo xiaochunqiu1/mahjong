@@ -533,10 +533,11 @@ export class RoomManager {
     if (s.phase.t === 'awaitResponse') view.deadline = room.turnStartedAt + 8_000;
     else if (s.phase.t === 'awaitDiscard' || s.phase.t === 'awaitDraw') view.deadline = room.turnStartedAt + 30_000;
     const stripMeld = (m: { type: string; kind: number; tiles: number[]; fromSeat?: number }) => ({ type: m.type, kind: m.kind, tiles: m.tiles, fromSeat: m.fromSeat });
+    // 名字/isBot 从座位玩家(room.players)取——引擎 PlayerState 无 name 字段(修复联机玩家名显示"家")
     view.others = s.players.map((opp: PlayerState, i: number) => ({
       seat: i,
-      name: opp.name,
-      isBot: opp.isBot,
+      name: room.players[i]?.name ?? '',
+      isBot: room.players[i]?.isBot ?? true,
       handCount: i === seat ? 0 : opp.hand.length,
       flowers: opp.flowers,
       melds: opp.melds.map(stripMeld),

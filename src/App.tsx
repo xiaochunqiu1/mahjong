@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './styles/app.css';
 import { Home } from './ui/Home.js';
 import { Game } from './ui/Game.js';
@@ -10,7 +10,9 @@ import { Room } from './ui/Room.js';
 
 function unlockAudio() {
   // 用户首次交互时解锁 AudioContext + TTS（mobile/微信限制：非手势路径被 suspended/忽略）
-  setSoundEnabled(true);
+  // 尊重设置页的音效开关（此前无条件开启 → 用户在设置里关了音效，进游戏点屏幕又被强制打开）
+  const s = localStorage.getItem('qz-mj-sound');
+  setSoundEnabled(s === null ? true : s !== '0');
   unlockTTS();
   // 解锁 HTMLAudio autoplay：用云函数 TTS 真实 URL（首字符预热，第二次零延迟）
   try {
@@ -46,8 +48,23 @@ export default function App() {
   // 背景乐：永远默认开启（不记忆关闭状态——用户明确要求打开链接就响；想关点首页"♪ 音乐关"，本次会话有效）
   const [bgmOn, setBgmOn] = useState<boolean>(true);
 
-  // 背景乐默认开启：进入页面即播放（设置页/首页可关，选择记忆在 localStorage）
+  // BGM 在**首次用户手势内**才真正启动（iOS/微信：页面加载期 play 会被拦截并弹"音视频播放被浏览器拦截"提示）
+  const bgmOnRef = useRef(bgmOn);
+  bgmOnRef.current = bgmOn;
+  const bgmStartedRef = useRef(false);
   useEffect(() => {
+    const start = () => {
+      if (bgmStartedRef.current) return;
+      bgmStartedRef.current = true;
+      setBgmEnabled(bgmOnRef.current);
+    };
+    const EVT = ['touchstart', 'pointerdown', 'click', 'keydown'] as const;
+    EVT.forEach((n) => window.addEventListener(n, start, { once: true }));
+    return () => EVT.forEach((n) => window.removeEventListener(n, start));
+  }, []);
+  // 手势之后用户手动切换背景乐 → 立即生效
+  useEffect(() => {
+    if (!bgmStartedRef.current) return;
     setBgmEnabled(bgmOn);
   }, [bgmOn]);
 

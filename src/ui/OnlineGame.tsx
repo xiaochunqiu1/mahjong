@@ -218,12 +218,21 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound }: 
           <div className="card">
             <h2>{over.liuju ? '流局' : over.winner === seat ? '我赢了！' : over.winType === 'ron' ? '点炮' : '其他玩家胡了'}</h2>
             <div className="score-line">{over.liuju ? '无人胡牌' : `${view.players.find((p) => p.seat === over.winner)?.name ?? '?'} ${over.winType}`}</div>
-            <div className="row" style={{ justifyContent: 'center' }}>
-              <span>本局得分</span>
-              <span style={{ color: 'var(--gold-light)' }}>{(over.delta[seat] ?? 0) >= 0 ? '+' : ''}{over.delta[seat] ?? 0}</span>
+            {/* 四家积分表：当局得分 + 累计积分 */}
+            <div className="settle-table">
+              <div className="st-row st-head"><span>玩家</span><span>本局</span><span>累计</span></div>
+              {view.players.map((p) => (
+                <div key={p.seat} className="st-row">
+                  <span>{p.seat === seat ? '我' : p.name}{p.seat === view.dealer ? '（庄）' : ''}</span>
+                  <span style={{ color: (over.delta[p.seat] ?? 0) >= 0 ? 'var(--gold-light)' : '#7fc8a9' }}>
+                    {(over.delta[p.seat] ?? 0) >= 0 ? '+' : ''}{over.delta[p.seat] ?? 0}
+                  </span>
+                  <span>{view.scores[p.seat] ?? 0}</span>
+                </div>
+              ))}
             </div>
             <div className="actions-row" style={{ justifyContent: 'center', marginTop: 12 }}>
-              {view.waitingNext && seat === 0 && nextRound && (
+              {view.roomPhase === 'playing' && view.waitingNext && seat === 0 && nextRound && (
                 <button className="btn btn-gold" onClick={() => nextRound()}>下一局</button>
               )}
               <button className="btn btn-sea" onClick={onLeave}>离开房间</button>

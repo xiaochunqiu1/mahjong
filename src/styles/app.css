@@ -91,6 +91,12 @@ body { display: flex; align-items: center; justify-content: center; overflow: hi
 }
 .tile.back { background: #2e7d6b; box-shadow: inset 0 0 0 2px rgba(232,201,95,.45), inset 0 0 12px rgba(255,255,255,.12); }
 .tile.sm { width: 22px; height: 31px; border-radius: 3px; border: 1px solid #a63a2e; }
+/* 副露牌：比牌河(18×26)更小 */
+.og .meld-group .tile.sm { width: 15px; height: 21px; border-radius: 2px; border: none; }
+.og .meld-group .tile.sm.haku .haku-label { font-size: 7px; }
+.og .meld-group .tile.sm.flower .face-flower { font-size: 8px; }
+/* 双击出牌：选中高亮 */
+.tile.picked { box-shadow: 0 0 0 3px var(--gold), 0 0 14px rgba(232,201,95,.8); transform: translateY(-10px); }
 .tile.sm.gold::after { width: 11px; height: 11px; font-size: 7px; top: -5px; right: -5px; }
 .tile.vback {
   width: 26px; height: 36px; border-radius: 3px;
@@ -562,3 +568,31 @@ body { display: flex; align-items: center; justify-content: center; overflow: hi
 .chi-picker-opt { background: rgba(244,234,216,.12); border: 1px solid rgba(232,201,95,.4); border-radius: 6px; padding: 6px 10px; cursor: pointer; display: flex; gap: 2px; align-items: center; }
 .chi-picker-opt:active { background: rgba(232,201,95,.3); }
 .chi-picker-cancel { display: block; margin: 10px auto 0; background: transparent; border: 1px solid rgba(244,234,216,.4); color: var(--rice); border-radius: 999px; padding: 3px 14px; font-size: 12px; cursor: pointer; }
+
+/* ---------- 声音设置面板（喇叭按钮弹出） ---------- */
+.sound-panel {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 60;
+  background: linear-gradient(180deg, #123c2e, #0b2a20);
+  border: 1px solid rgba(232,201,95,.45); border-radius: 10px;
+  padding: 10px 12px; min-width: 148px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.5);
+}
+.sound-panel .sp-title { color: var(--gold-light); font-size: 12px; letter-spacing: 3px; margin-bottom: 8px; text-align: center; }
+.sound-panel .sp-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 18px;
+  padding: 6px 2px; cursor: pointer; border-radius: 6px; color: var(--rice); font-size: 13px;
+}
+.sound-panel .sp-row:active { background: rgba(232,201,95,.14); }
+.sound-panel .sp-toggle { font-size: 12px; min-width: 34px; text-align: right; }
+.sound-panel .sp-toggle.on { color: var(--gold-light); }
+.sound-panel .sp-toggle.off { color: rgba(244,234,216,.45); }
+.sound-panel .sp-close { margin-top: 8px; text-align: center; color: rgba(244,234,216,.55); font-size: 11px; cursor: pointer; padding: 4px; border-top: 1px solid rgba(244,234,216,.12); }
+
+/* ---------- 好友房结算页：四家积分表 ---------- */
+.settle-table { margin-top: 12px; width: 100%; border: 1px solid rgba(232,201,95,.35); border-radius: 8px; overflow: hidden; }
+.settle-table .st-row { display: flex; justify-content: space-between; padding: 6px 12px; font-size: 13px; color: var(--rice); }
+.settle-table .st-row + .st-row { border-top: 1px solid rgba(244,234,216,.1); }
+.settle-table .st-head { background: rgba(232,201,95,.16); color: var(--gold-light); font-weight: 700; letter-spacing: 2px; }
+.settle-table .st-row span:nth-child(1) { flex: 1; text-align: left; }
+.settle-table .st-row span:nth-child(2) { width: 56px; text-align: right; }
+.settle-table .st-row span:nth-child(3) { width: 56px; text-align: right; }
