@@ -211,9 +211,6 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound }: 
     return (
       <div className="stage online-game og">
         {confettiPortal}
-        <button onClick={onLeave}
-          style={{ position: 'absolute', top: 10, right: 14, zIndex: 10, background: 'rgba(6,32,24,.6)', border: '1px solid rgba(232,201,95,.5)', color: '#ffe9a8', padding: '3px 12px', borderRadius: 999, fontSize: 12, cursor: 'pointer' }}
-        >退出</button>
         <div className="overlay">
           <div className="card">
             <h2>{over.liuju ? '流局' : over.winner === seat ? '我赢了！' : over.winType === 'ron' ? '点炮' : '其他玩家胡了'}</h2>
@@ -231,7 +228,7 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound }: 
                 </div>
               ))}
             </div>
-            <div className="actions-row" style={{ justifyContent: 'center', marginTop: 12 }}>
+            <div className="actions-row" style={{ justifyContent: 'flex-end', gap: 24, marginTop: 16, paddingRight: 8 }}>
               {view.roomPhase === 'playing' && view.waitingNext && seat === 0 && nextRound && (
                 <button className="btn btn-gold" onClick={() => nextRound()}>下一局</button>
               )}
