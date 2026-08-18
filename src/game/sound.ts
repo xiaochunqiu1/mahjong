@@ -196,7 +196,7 @@ export function setSoundEnabled(on: boolean) {
   if (typeof window !== 'undefined' && window.speechSynthesis) {
     if (!on) window.speechSynthesis.cancel();
   }
-  if (!on && bgmStop) { bgmStop(); bgmStop = null; bgmEnabled = false; }
+  // 不再"关音效联动关背景乐"——音效/背景乐是两个独立开关（用户 2026-08-19 实测反馈）
 }
 
 export function isSoundEnabled() { return sfxEnabled; }

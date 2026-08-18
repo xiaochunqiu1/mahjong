@@ -42,7 +42,7 @@ export function SoundPanel({ showVoice, voiceOn, onToggleVoice, onClose }: {
         setBgmEnabled(v);
         try { localStorage.setItem('qz-mj-bgm', v ? '1' : '0'); } catch { /* ignore */ }
       })}
-      {showVoice && row('玩家开麦', voiceOn, onToggleVoice)}
+      {showVoice && row('其他玩家', voiceOn, onToggleVoice)}
       <div className="sp-close" onClick={onClose}>× 关闭</div>
     </div>
   );

@@ -577,7 +577,7 @@ export class RoomManager {
   private botSeat(seat: number): SeatPlayer {
     return {
       seat,
-      name: ['阿美', '阿强', '阿珠'][seat - 1] ?? `电脑${seat + 1}`,
+      name: ['小美', '阿强', '阿珍'][seat - 1] ?? `电脑${seat + 1}`,
       token: `bot-${seat}`,
       online: true,
       ready: true, // bot 总是已准备

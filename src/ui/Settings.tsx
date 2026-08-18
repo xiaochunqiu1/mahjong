@@ -15,7 +15,7 @@ export function Settings({ go }: { go: (p: string) => void }) {
   useEffect(() => {
     setSoundEnabled(sound);
     try { localStorage.setItem('qz-mj-sound', sound ? '1' : '0'); } catch { /* ignore */ }
-    if (!sound && bgm) setBgm(false); // 关 SFX 时联动关 BGM
+    // 音效/背景乐是独立开关，不再联动关 BGM（用户 2026-08-19 实测反馈）
   }, [sound]);
   useEffect(() => {
     setBgmEnabled(bgm);
