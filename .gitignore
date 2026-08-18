@@ -29,4 +29,6 @@ cloudfunctions/tts/tts.zip
 *.zip
 .DS_Store
 Thumbs.db
-dist-kai dist-xiaoya dist-final/
+dist-kai/
+dist-xiaoya/
+dist-final/
