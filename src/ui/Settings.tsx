@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { setSoundEnabled, isSoundEnabled, setBgmEnabled, isBgmEnabled } from '../game/sound.js';
+import { setSoundEnabled, setBgmEnabled, getBgm } from '../game/sound.js';
 
 export function Settings({ go }: { go: (p: string) => void }) {
   const [sound, setSound] = useState<boolean>(() => {
@@ -7,19 +7,21 @@ export function Settings({ go }: { go: (p: string) => void }) {
     if (stored !== null) return stored !== '0';
     return true;
   });
-  const [bgm, setBgm] = useState<boolean>(() => {
-    const stored = localStorage.getItem('qz-mj-bgm');
-    if (stored !== null) return stored !== '0';
-    return true; // 默认开
-  });
+  const [bgm, setBgm] = useState<boolean>(getBgm);
+  // 监听全局 bgm 变化(面板/首页改了 → 同步显示)
+  useEffect(() => {
+    const sync = () => setBgm(getBgm());
+    window.addEventListener('bgm-change', sync);
+    return () => window.removeEventListener('bgm-change', sync);
+  }, []);
   useEffect(() => {
     setSoundEnabled(sound);
     try { localStorage.setItem('qz-mj-sound', sound ? '1' : '0'); } catch { /* ignore */ }
     // 音效/背景乐是独立开关，不再联动关 BGM（用户 2026-08-19 实测反馈）
   }, [sound]);
   useEffect(() => {
+    // setBgmEnabled 内部已写会话级 store + 派发 bgm-change
     setBgmEnabled(bgm);
-    try { localStorage.setItem('qz-mj-bgm', bgm ? '1' : '0'); } catch { /* ignore */ }
   }, [bgm]);
   return (
     <div className="stage simple stage-portrait">
