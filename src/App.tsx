@@ -5,7 +5,7 @@ import { Game } from './ui/Game.js';
 import { Rules } from './ui/Rules.js';
 import { Settings } from './ui/Settings.js';
 import { History } from './ui/History.js';
-import { setBgmEnabled, setSoundEnabled, unlockTTS, preloadTtsBuffers } from './game/sound.js';
+import { setBgmEnabled, setSoundEnabled, unlockTTS, preloadTtsBuffers, getBgm } from './game/sound.js';
 import { Room } from './ui/Room.js';
 
 function unlockAudio() {
@@ -44,8 +44,10 @@ export default function App() {
     return q || window.location.hash.slice(1) || '';
   });
   const [rounds, setRounds] = useState<4 | 8>(4);
-  // 背景乐：永远默认开启（不记忆关闭状态——用户明确要求打开链接就响；想关点首页"♪ 音乐关"，本次会话有效）
-  const [bgmOn, setBgmOn] = useState<boolean>(true);
+  // 背景乐：从 store 读取（开关持久化到 localStorage，与设置/声音面板双向同步）
+  const [bgmOn, setBgmOn] = useState<boolean>(() => {
+    try { return localStorage.getItem('qz-mj-bgm') !== '0'; } catch { return true; }
+  });
 
   // BGM 在**首次用户手势内**才真正启动（iOS/微信：页面加载期 play 会被拦截并弹"音视频播放被浏览器拦截"提示）
   const bgmOnRef = useRef(bgmOn);
@@ -55,11 +57,20 @@ export default function App() {
     const start = () => {
       if (bgmStartedRef.current) return;
       bgmStartedRef.current = true;
-      setBgmEnabled(bgmOnRef.current);
+      // 启动时读 store 当下值（用户可能刚从面板关了 BGM）
+      setBgmEnabled(getBgm());
     };
     const EVT = ['touchstart', 'pointerdown', 'click', 'keydown'] as const;
     EVT.forEach((n) => window.addEventListener(n, start, { once: true }));
     return () => EVT.forEach((n) => window.removeEventListener(n, start));
+    // setBgmEnabled / getBgm 闭包
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // 监听 bgm-change（设置/面板改了 → 同步本地 state 和声音）
+  useEffect(() => {
+    const sync = () => { const v = getBgm(); setBgmOn(v); setBgmEnabled(v); };
+    window.addEventListener('bgm-change', sync);
+    return () => window.removeEventListener('bgm-change', sync);
   }, []);
   // 手势之后用户手动切换背景乐 → 立即生效
   useEffect(() => {

@@ -305,6 +305,7 @@ let bgmFallbackStop: (() => void) | null = null;
 /** 启动 / 停止 BGM（默认关，用户开） */
 export function setBgmEnabled(on: boolean) {
   bgmEnabled = on;
+  setBgmStore(on);
   if (on) {
     setSoundEnabled(true);
     if (!bgmStop) bgmStop = startBgm();
@@ -333,6 +334,17 @@ if (typeof window !== 'undefined') {
 }
 
 export function isBgmEnabled() { return bgmEnabled; }
+
+/** BGM 开关持久化 + 事件广播（与 voice.ts 同模式：所有读写都走这里） */
+const KEY_BGM = 'qz-mj-bgm';
+function readBgm(): boolean {
+  try { const v = localStorage.getItem(KEY_BGM); return v === null ? true : v !== '0'; } catch { return true; }
+}
+export function getBgm(): boolean { return readBgm(); }
+export function setBgmStore(on: boolean) {
+  try { localStorage.setItem(KEY_BGM, on ? '1' : '0'); } catch { /* ignore */ }
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('bgm-change'));
+}
 
 /** 调试：window.__bgmDebug() 返回当前 BGM 音频真实状态（验证用，无害保留） */
 if (typeof window !== 'undefined') {
