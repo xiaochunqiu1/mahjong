@@ -44,8 +44,8 @@ export default function App() {
     return q || window.location.hash.slice(1) || '';
   });
   const [rounds, setRounds] = useState<4 | 8>(4);
-  // 背景乐：会话级默认开启(打开链接就响,不记忆——用户明确要求)
-  const [bgmOn, setBgmOn] = useState<boolean>(true);
+  // 背景乐：localStorage 持久化(首次默认开;用户关过后下次进入保持关闭——2026-08-20 用户明确)
+  const [bgmOn, setBgmOn] = useState<boolean>(getBgm);
 
   // BGM 在**首次用户手势内**才真正启动（iOS/微信：页面加载期 play 会被拦截并弹"音视频播放被浏览器拦截"提示）
   const bgmOnRef = useRef(bgmOn);

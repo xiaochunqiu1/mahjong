@@ -335,12 +335,14 @@ if (typeof window !== 'undefined') {
 
 export function isBgmEnabled() { return bgmEnabled; }
 
-/** BGM 开关：会话级状态（每次打开链接默认开，不跨会话记忆——用户明确要求"打开链接就响"）
- *  用内存变量 + 事件广播，保证首页/设置/对局面板显示一致 */
-let bgmUserPref = true;
-export function getBgm(): boolean { return bgmUserPref; }
+/** BGM 开关：localStorage 持久化（默认开；用户关过后下次进入保持关闭——2026-08-20 用户明确）
+ *  主页随意点击不自动开，除非用户主动开"背景乐"开关 */
+const KEY_BGM = 'qz-mj-bgm';
+export function getBgm(): boolean {
+  try { const v = localStorage.getItem(KEY_BGM); return v === null ? true : v !== '0'; } catch { return true; }
+}
 export function setBgmStore(on: boolean) {
-  bgmUserPref = on;
+  try { localStorage.setItem(KEY_BGM, on ? '1' : '0'); } catch { /* ignore */ }
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('bgm-change'));
 }
 
