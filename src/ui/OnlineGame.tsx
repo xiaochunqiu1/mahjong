@@ -8,6 +8,7 @@ import { kindOf } from '../engine/index.js';
 import { sortHandForDisplay } from '../game/sortHand.js';
 import { createPortal } from 'react-dom';
 import { triggerFromEvent, speakTile, speak, chord } from '../game/sound.js';
+import { isMicOn, isSpeakerOn, setMicOn, setSpeakerOn, onVoiceChange } from '../game/voice.js';
 import type { OnlineRoomView } from '../game/online.js';
 import { OGStage, windOfSeat, type SeatInfo } from './OGStage.js';
 import { VoiceSession } from './VoiceSession.js';
@@ -54,8 +55,9 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound }: 
   // 监听 lastEvent 变化 → 触发音效 + 游金撒花/喊话
   const lastEventRef = useRef<string>('');
   const [confetti, setConfetti] = useState<{ id: number; bursts: { id: string; x: number; y: number; delay: number; pieces: { angle: number; dist: number; color: string; size: number }[] }[] } | null>(null);
-  const [voiceMicOn, setVoiceMicOn] = useState(false);    // 麦克风默认关
-  const [voiceSpeakerOn, setVoiceSpeakerOn] = useState(true); // 喇叭默认开（能听别人）
+  const [voiceMicOn, setVoiceMicOnState] = useState(isMicOn);    // 来自全局 store（大厅/对局共享）
+  const [voiceSpeakerOn, setVoiceSpeakerOnState] = useState(isSpeakerOn);
+  useEffect(() => onVoiceChange(() => { setVoiceMicOnState(isMicOn()); setVoiceSpeakerOnState(isSpeakerOn()); }), []);
   useEffect(() => {
     if (view.lastEvent && view.lastEvent !== lastEventRef.current) {
       lastEventRef.current = view.lastEvent;
@@ -228,7 +230,7 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound }: 
                 </div>
               ))}
             </div>
-            <div className="actions-row" style={{ justifyContent: 'flex-end', gap: 24, marginTop: 16, paddingRight: 8 }}>
+            <div className="actions-row" style={{ justifyContent: 'space-between', marginTop: 16, padding: '0 16px' }}>
               {view.roomPhase === 'playing' && view.waitingNext && seat === 0 && nextRound && (
                 <button className="btn btn-gold" onClick={() => nextRound()}>下一局</button>
               )}
@@ -378,10 +380,10 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound }: 
       myName={session.name}
       lastDiscardSeat={view.lastDiscardSeat}
       showMic
-      onMic={() => setVoiceMicOn((v) => !v)}
+      onMic={() => setMicOn(!isMicOn())}
       micOn={voiceMicOn}
       showSpeaker
-      onSpeaker={() => setVoiceSpeakerOn((v) => !v)}
+      onSpeaker={() => setSpeakerOn(!isSpeakerOn())}
       speakerOn={voiceSpeakerOn}
       onLeave={onLeave}
       onActDrawn={(t) => {
