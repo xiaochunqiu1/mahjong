@@ -1,8 +1,7 @@
 import { memo } from 'react';
 
-const FLOWERS = ['春', '夏', '秋', '冬', '梅', '兰', '竹', '菊'];
-
-/** kind → riichi-mahjong-tiles SVG 文件名（public/tiles/，CC0 公有领域） */
+/** kind → 香港麻将 PNG 文件名（public/tiles/，samoheen/mahjong-tiles，Public Domain）
+ *  映射：Man=万 characters / Sou=条 bamboos / Pin=筒 circles / 东南西北 / Chun=中(红龙) / Hatsu=發(绿龙) / Haku=白(白龙) / flower-1..8=春夏秋冬梅兰竹菊 */
 function tileSvg(kind: number): string {
   if (kind < 9) return 'Man' + (kind + 1);            // 万
   if (kind < 18) return 'Sou' + (kind - 8);           // 条
@@ -10,36 +9,26 @@ function tileSvg(kind: number): string {
   if (kind < 31) return ['Ton', 'Nan', 'Shaa', 'Pei'][kind - 27]!; // 东南西北
   if (kind === 31) return 'Chun';                     // 中
   if (kind === 32) return 'Hatsu';                    // 發
-  return 'Haku';                                      // 白
+  return 'Haku';                                      // 白板
 }
+function flowerSvg(kind: number): string { return 'flower-' + (kind - 33); } // kind 34-41 → flower-1..8
 
-/** 牌面组件：kind → 高清 SVG 牌面（riichi-mahjong-tiles，CC0）
- *  花牌无素材 → Front.svg 牌身 + 汉字叠加 */
+/** 牌面组件：kind → 香港麻将 PNG 牌面（Public Domain） */
 export const TileFace = memo(function TileFace({ kind, small, onClickTile, extraCls, style, selected }: {
   kind: number; small?: boolean; onClickTile?: () => void; extraCls?: string; style?: React.CSSProperties; selected?: boolean;
 }) {
   const cls = 'tile' + (small ? ' sm' : '') + (onClickTile ? ' selectable' : '') + (selected ? ' picked' : '') + (extraCls ? ' ' + extraCls : '');
+  // 花牌：专用素材（带春夏秋冬/梅兰竹菊图案）
   if (kind >= 34) {
-    // 花牌：Front 牌身 + 汉字（riichi 素材无花牌）
     return (
       <div className={cls + ' flower'} onClick={onClickTile} style={style}>
-        <img className="face-img" src="/tiles/Front.svg" alt="" draggable={false} />
-        <span className="face-flower">{FLOWERS[kind - 34]}</span>
-      </div>
-    );
-  }
-  // 白板（kind 33）SVG 内只有边框无字，加一个中心"白"字让牌面有内容（其他字牌 SVG 自带汉字）
-  if (kind === 33) {
-    return (
-      <div className={cls + ' haku'} onClick={onClickTile} style={style}>
-        <img className="face-img" src="/tiles/Haku.svg" alt="" draggable={false} />
-        <span className="haku-label">白</span>
+        <img className="face-img" src={'/tiles/' + flowerSvg(kind) + '.png'} alt="" draggable={false} />
       </div>
     );
   }
   return (
     <div className={cls} onClick={onClickTile} style={style}>
-      <img className="face-img" src={'/tiles/' + tileSvg(kind) + '.svg'} alt="" draggable={false} />
+      <img className="face-img" src={'/tiles/' + tileSvg(kind) + '.png'} alt="" draggable={false} />
     </div>
   );
 });
