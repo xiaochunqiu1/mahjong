@@ -185,24 +185,34 @@ export function Game({ rounds: initialRounds, onExit }: { rounds: 4 | 8; onExit:
         <div className="overlay">
           <div className="card">
             <h2>{result.liuju ? '流 局' : `${NAMES[result.winner]}${winText(result.score.winType)}`}</h2>
-            <div className="score-line">
-              我 <b>{formatDelta(result.score.delta[0])}</b>
-              <span style={{ opacity: .7 }}>　·　本场积分　</span>
-              {s.match.scores.map((v, i) => (
-                <span key={i} style={{ margin: '0 6px' }}>{NAMES[i]}:{v}</span>
+            {/* 四家积分表：当局得分 + 累计积分（和好友房风格一致） */}
+            <div className="settle-table">
+              <div className="st-row st-head"><span>玩家</span><span>本局</span><span>累计</span></div>
+              {NAMES.map((n, i) => (
+                <div key={i} className="st-row">
+                  <span>{i === 0 ? '我' : n}{i === s.match.dealer ? '（庄）' : ''}</span>
+                  <span style={{ color: (result.score.delta[i] ?? 0) >= 0 ? 'var(--gold-light)' : '#7fc8a9' }}>
+                    {(result.score.delta[i] ?? 0) >= 0 ? '+' : ''}{result.score.delta[i] ?? 0}
+                  </span>
+                  <span>{s.match.scores[i] ?? 0}</span>
+                </div>
               ))}
             </div>
-            {s.match.over ? (
-              <>
-                <div className="score-line">整场结束，我排名 <b>{rankText(s.match.scores)}</b></div>
-                <button className="btn btn-gold" style={{ padding: '0 36px', height: 40 }} onClick={onExit}>返回首页</button>
-              </>
-            ) : (
-              <button className="btn btn-gold" style={{ padding: '0 36px', height: 40 }}
-                onClick={() => { nextRound(s); force((n) => n + 1); }}>
-                下一局（第 {s.match.roundNo}/{s.match.config.rounds} 局）
-              </button>
+            {s.match.over && (
+              <div className="score-line" style={{ marginTop: 10 }}>整场结束，我排名 <b>{rankText(s.match.scores)}</b></div>
             )}
+            {/* 分端按钮：左侧主操作（下一局或整场结束无下一局），右侧返回首页（对应好友房"离开房间"） */}
+            <div className="actions-row" style={{ marginTop: 16, padding: '0 8px' }}>
+              {!s.match.over ? (
+                <button className="btn btn-gold" style={{ padding: '0 28px', height: 40 }}
+                  onClick={() => { nextRound(s); force((n) => n + 1); }}>
+                  下一局（第 {s.match.roundNo}/{s.match.config.rounds} 局）
+                </button>
+              ) : (
+                <span />
+              )}
+              <button className="btn btn-sea" onClick={onExit}>返回首页</button>
+            </div>
           </div>
         </div>
       </div>

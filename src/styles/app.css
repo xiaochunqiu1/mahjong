@@ -569,6 +569,9 @@ body { display: flex; align-items: center; justify-content: center; overflow: hi
 .chi-picker-opt:active { background: rgba(232,201,95,.3); }
 .chi-picker-cancel { display: block; margin: 10px auto 0; background: transparent; border: 1px solid rgba(244,234,216,.4); color: var(--rice); border-radius: 999px; padding: 3px 14px; font-size: 12px; cursor: pointer; }
 
+/* ---------- 动作行（结算页按钮分端：左侧主操作，右侧退出/离开） ---------- */
+.actions-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 16px; }
+
 /* ---------- 声音设置面板（喇叭按钮弹出） ---------- */
 .sound-panel {
   position: absolute; right: 0; top: calc(100% + 6px); z-index: 60;
