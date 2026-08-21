@@ -573,7 +573,7 @@ body { display: flex; align-items: center; justify-content: center; overflow: hi
    电脑/横屏：OGStage 不旋转，banner 也不旋转（横排居中偏下）
    手机竖屏 viewport：OGStage 被 fit 旋转 90°，banner 跟着旋转 —— 和“刷新/退出”等文字永远同向 */
 .trust-banner {
-  position: fixed; bottom: 5vh; left: 50vw;
+  position: fixed; bottom: 22vh; left: 50vw;
   transform: translateX(-50%);
   z-index: 90;
   display: flex; align-items: center; gap: 8px;
