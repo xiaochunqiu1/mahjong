@@ -37,7 +37,8 @@ npx tcb config update fn room-api     # 交互选 Merge，或控制台配置
 ## 云函数目录约定（CloudBase CLI 只认这种结构）
 - 根目录 `cloudbaserc.json`（CLI 从项目根运行才读得到；放函数目录里会被忽略）
 - `functionRoot: "cloudfunctions"`，函数代码 = `cloudfunctions/room-api/`（index.js + package.json）
-- `cloudfunctions/room-api/build.sh` 把 `index.ts` + server/room.ts esbuild 成根目录 `index.js`（`--external:@cloudbase/node-sdk`，`installDependency: true`）
+- `cloudfunctions/room-api/build.sh` 把 `index.entry.ts`（源码已改名，避免平台源码模式）+ server/room.ts esbuild 成根目录 `index.js`（`--external:@cloudbase/node-sdk`，`installDependency: true`）
+- **部署指纹坑**：改 server/room.ts 后必须 bump `cloudfunctions/room-api/package.json` 的 version（1.0.0→1.0.1→…），否则 CloudBase 依赖指纹缓存跳过代码更新，线上跑旧逻辑；验证用 `tcb fn invoke room-api --params '{"action":"createRoom","name":"x","rounds":9999}'`
 
 ## 云函数环境变量
 - `TRTC_SDKAPPID` / `TRTC_SECRETKEY`：TRTC 控制台应用密钥（2026-08-12 已配置），用于 getTrtcSign 签发 userSig
