@@ -99,6 +99,8 @@ export default function App() {
       const vh = document.documentElement.clientHeight || window.innerHeight;
       const isTouch = typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 || 'ontouchstart' in window);
       const isMobile = isTouch && vw < 700;
+      // 真物理方向:matchMedia 优先(vh/vw 在横屏手机浏览器可能仍报竖屏)
+      const isPortrait = typeof window !== 'undefined' && !!window.matchMedia?.('(orientation: portrait)').matches;
       // 对局状态：game 路由 OR stage 内部含 .online-game（Room 嵌入的联机对局）
       const isPlayingStage = (s: HTMLElement) =>
         s.classList.contains('online-game') || (route === 'game' && !s.classList.contains('stage-portrait'));
@@ -107,7 +109,7 @@ export default function App() {
           s.style.transform = '';
           return;
         }
-        if (isMobile && vh > vw && isPlayingStage(s)) {
+        if (isMobile && isPortrait && vh > vw && isPlayingStage(s)) {
           // 旋转后视觉宽=375k 高=812k。min 保证两方向都不溢出（max 会让高溢出裁切！）×0.96 留安全边距
           const k = Math.min(vw / 375, vh / 812) * 0.96;
           s.style.transform = `rotate(90deg) scale(${k})`;
