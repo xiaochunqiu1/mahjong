@@ -415,17 +415,19 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound, on
         submitAction({ type: 'discard', tile: t });
       }}
     />
-    {/* 我托管中:放回 OGStage 内部(position: absolute),跟着麻将一起旋转 90° → 手机横屏后用户视觉是横排,与麻将同向 */}
+    {/* 我托管中:在 OGStage 内,writing-mode: vertical-rl(文字竖排)
+        + OGStage 自身旋转 90° → 物理手机:竖长条(像手牌)+ 文字横排(和手牌字同向) */}
     {(view.trusted?.[seat] ?? false) && !localUntrusted && (
       <div style={{
         position: 'absolute', top: '50%', left: 12, transform: 'translateY(-50%)', zIndex: 70,
-        display: 'flex', alignItems: 'center', gap: 8,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+        writingMode: 'vertical-rl',
         background: 'rgba(6,32,24,.9)', border: '1px solid rgba(255,179,107,.6)',
-        borderRadius: 999, padding: '6px 14px', fontSize: 13,
-        whiteSpace: 'nowrap', boxShadow: '0 2px 10px rgba(0,0,0,.4)',
+        borderRadius: 999, padding: '10px 8px', fontSize: 13,
+        boxShadow: '0 2px 10px rgba(0,0,0,.4)',
       }}>
         <span style={{ color: '#ffb36b' }}>⏳ 你已托管</span>
-        <button className="btn btn-gold" style={{ padding: '4px 14px', fontSize: 12 }} onClick={() => { setLocalUntrusted(true); onUntrust(); }}>取消托管</button>
+        <button className="btn btn-gold" style={{ padding: '4px 12px', fontSize: 12, writingMode: 'horizontal-tb' }} onClick={() => { setLocalUntrusted(true); onUntrust(); }}>取消托管</button>
       </div>
     )}
     <VoiceSession roomId={session.roomId} token={session.token} micOn={voiceMicOn} speakerOn={voiceSpeakerOn} />
