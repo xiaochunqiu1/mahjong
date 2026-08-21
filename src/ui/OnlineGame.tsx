@@ -414,12 +414,12 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound, on
         submitAction({ type: 'discard', tile: t });
       }}
     />
-    {/* 我托管中：横幅 + 取消托管按钮 */}
+    {/* 我托管中：右下角横幅(必须在 OGStage 旋转容器外,position:fixed 才相对 viewport 不被旋转) */}
     {(view.trusted?.[seat] ?? false) && (
       <div style={{
-        position: 'absolute', bottom: 96, right: 80, zIndex: 70,
+        position: 'fixed', bottom: 24, right: 20, zIndex: 90,
         display: 'flex', alignItems: 'center', gap: 8,
-        background: 'rgba(6,32,24,.88)', border: '1px solid rgba(255,179,107,.6)',
+        background: 'rgba(6,32,24,.9)', border: '1px solid rgba(255,179,107,.6)',
         borderRadius: 999, padding: '6px 14px', fontSize: 13,
         whiteSpace: 'nowrap', boxShadow: '0 2px 10px rgba(0,0,0,.4)',
       }}>
