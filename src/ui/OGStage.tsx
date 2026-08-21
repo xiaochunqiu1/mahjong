@@ -169,7 +169,7 @@ function Compass({ curWind, deadline }: { curWind: string; deadline?: number }) 
   );
 }
 
-export function OGStage(props: OGStageProps): ReactNode {
+export function OGStage(props: OGStageProps & { children?: ReactNode }): ReactNode {
   const { top, left, right, me, myDiscards, myHand, myDrawnTile, myActive, myCanRespond,
     actions, lastEvent, onLeave, onActDrawn, showActionHint, goldKind,
     roomId, roundNo, rounds, wallCount, deadline } = props;
@@ -373,6 +373,7 @@ export function OGStage(props: OGStageProps): ReactNode {
           </div>
         </div>
       )}
+      {props.children}
     </div>
   );
 }

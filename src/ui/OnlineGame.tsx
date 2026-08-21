@@ -414,15 +414,17 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound, on
         speakTile(kindOf(t));
         submitAction({ type: 'discard', tile: t });
       }}
-    />
+    >
+      {/* 我托管中:OGStage 内(跟画面一起旋转/缩放,位置在 OGStage 坐标系 = 和手牌同坐标) */}
+      {(view.trusted?.[seat] ?? false) && !localUntrusted && (
+        <div className="trust-banner">
+          <span style={{ color: '#ffb36b' }}>⏳ 你已托管</span>
+          <button className="btn btn-gold" style={{ padding: '4px 14px', fontSize: 12 }} onClick={() => { setLocalUntrusted(true); onUntrust(); }}>取消托管</button>
+        </div>
+      )}
+    </OGStage>
     {/* 我托管中:Portal 到 body + 用 vw/vh 视口单位(微信内置浏览器 body 宽计算异常,left:50% 错位) */}
-    {(view.trusted?.[seat] ?? false) && !localUntrusted && createPortal(
-      <div className="trust-banner">
-        <span style={{ color: '#ffb36b' }}>⏳ 你已托管</span>
-        <button className="btn btn-gold" style={{ padding: '4px 14px', fontSize: 12 }} onClick={() => { setLocalUntrusted(true); onUntrust(); }}>取消托管</button>
-      </div>,
-      document.body,
-    )}
+
     <VoiceSession roomId={session.roomId} token={session.token} micOn={voiceMicOn} speakerOn={voiceSpeakerOn} />
     </>
   );
