@@ -208,8 +208,9 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
         submitAction={submitAction}
         onLeave={doLeave}
         onUntrust={async () => {
+          // 纯乐观：本地已由 OnlineGame 隐藏 banner，这里只后台调 API，不 setView(避免重挂载闪大厅)
           if (!session) return;
-          try { setView(await apiUntrust(session.roomId, session.token)); } catch (e) { setErr((e as Error).message); }
+          try { await apiUntrust(session.roomId, session.token); } catch (e) { setErr((e as Error).message); }
         }}
         nextRound={async () => {
           if (!session) return;
