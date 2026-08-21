@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   apiCreateRoom, apiJoinRoom, apiSetReady, apiStartMatch, apiNextRound, apiLeaveRoom, apiPoll, apiSubmitAction,
+  apiResumeSeat,
   type OnlineRoomView,
 } from '../game/online.js';
 import { OnlineGame } from './OnlineGame.js';
@@ -17,21 +18,25 @@ interface Session {
 const SEAT_NAMES = ['1 号位', '2 号位', '3 号位', '4 号位'];
 
 export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | 'join' }) {
-  // 进入 create/join 时清掉旧 session，避免残留旧房间
-  useEffect(() => {
-    try { localStorage.removeItem('qz-mj-room'); } catch { /* ignore */ }
-    setSession(null); setView(null); setErr('');
-    setRoomIdInput('');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
-
-  const [session, setSession] = useState<Session | null>(null);
+  // 身份 token 持久化在 localStorage：重进链接自动恢复原座位（不再变新身份卡"未准备"）
+  const [session, setSession] = useState<Session | null>(() => {
+    try {
+      const s = localStorage.getItem('qz-mj-room');
+      return s ? (JSON.parse(s) as Session) : null;
+    } catch { return null; }
+  });
   const [view, setView] = useState<OnlineRoomView | null>(null);
   const [name, setName] = useState<string>(() => localStorage.getItem('qz-mj-name') ?? '');
-  const [roomIdInput, setRoomIdInput] = useState('');
+  const [roomIdInput, setRoomIdInput] = useState(() => {
+    const q = new URLSearchParams(window.location.search).get('room');
+    return q || '';
+  });
   const [rounds, setRounds] = useState<4 | 8>(4);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState('');
+  const copiedRoomRef = useRef(false);
+  const resumeTriedRef = useRef(false);
   const [voiceMicOn, setVoiceMicOnState] = useState(isMicOn);        // 来自全局 store（大厅/对局共享）
   const [voiceSpeakerOn, setVoiceSpeakerOnState] = useState(isSpeakerOn);
   const [soundPanelOpen, setSoundPanelOpen] = useState(false);
@@ -54,6 +59,47 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
     pollTimer.current = window.setInterval(poll, 1000);
     return () => { if (pollTimer.current) window.clearInterval(pollTimer.current); };
   }, [session]);
+
+  // 方案2：重进链接时有旧 session → 自动 resumeSeat 恢复原座位（身份不丢）
+  useEffect(() => {
+    if (!session || resumeTriedRef.current) return;
+    resumeTriedRef.current = true;
+    apiResumeSeat(session.roomId, session.token)
+      .then((v) => { setView(v); setErr(''); })
+      .catch(() => {
+        // 房间已解散/身份失效 → 清掉，正常显示表单
+        try { localStorage.removeItem('qz-mj-room'); } catch { /* ignore */ }
+        setSession(null);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 方案1：建房成功自动复制房间号到剪贴板
+  useEffect(() => {
+    if (view && session && !copiedRoomRef.current) {
+      copiedRoomRef.current = true;
+      copyText(session.roomId, '房间号已复制');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, session]);
+
+  const copyText = (t: string, label: string) => {
+    try {
+      const done = () => { setCopied(label); window.setTimeout(() => setCopied(''), 2200); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(t).then(done).catch(() => fallbackCopy(t, done));
+      } else fallbackCopy(t, done);
+    } catch { setErr('复制失败，请手动抄录'); }
+  };
+  const fallbackCopy = (t: string, done: () => void) => {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+      done();
+    } catch { setErr('复制失败，请手动抄录'); }
+  };
 
   const saveSession = (s: Session) => {
     setSession(s);
@@ -165,7 +211,16 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
           <div className="room-code" style={{ fontSize: 40, letterSpacing: 10, color: 'var(--gold-light)', fontFamily: 'var(--serif)', textAlign: 'center', margin: '6px 0 2px' }}>
             {view.roomId}
           </div>
-          <p style={{ textAlign: 'center', opacity: .7, fontSize: 12, marginBottom: 10 }}>把房间码告诉朋友，或直接分享本页链接</p>
+          {/* 方案1+3：复制房间号 / 复制房间链接（发完点微信返回键即可回到房间，身份不丢） */}
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 4, flexWrap: 'wrap' }}>
+            <button className="btn" style={{ padding: '6px 16px', fontSize: 13 }}
+              onClick={() => copyText(view.roomId, '房间号已复制')}>📋 复制房间号</button>
+            <button className="btn" style={{ padding: '6px 16px', fontSize: 13 }}
+              onClick={() => copyText(location.origin + location.pathname + '?r=' + Date.now() + '&room=' + view.roomId, '房间链接已复制')}>🔗 复制房间链接</button>
+          </div>
+          <p style={{ textAlign: 'center', opacity: .7, fontSize: 12, margin: '6px 0 10px' }}>
+            {copied || '去微信聊天粘贴发给朋友，发完点左上角返回键回到房间'}
+          </p>
           <div className="room-players">
             {view.players.map((p, i) => (
               <div key={i} className="row" style={{ opacity: p.isBot ? .6 : 1 }}>

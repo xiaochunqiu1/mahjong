@@ -40,8 +40,11 @@ function unlockAudio() {
 
 export default function App() {
   const [route, setRoute] = useState<string>(() => {
-    const q = new URLSearchParams(window.location.search).get('r');
-    return q || window.location.hash.slice(1) || '';
+    const q = new URLSearchParams(window.location.search);
+    const room = q.get('room');
+    const r = q.get('r');
+    if (room) return 'join'; // 带房间号链接 → 直接进加入页(房间号已预填)
+    return r || window.location.hash.slice(1) || '';
   });
   const [rounds, setRounds] = useState<4 | 8>(4);
   // 背景乐：localStorage 持久化(首次默认开;用户关过后下次进入保持关闭——2026-08-20 用户明确)
