@@ -415,10 +415,10 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound, on
         submitAction({ type: 'discard', tile: t });
       }}
     />
-    {/* 我托管中：右下角横幅(必须在 OGStage 旋转容器外,position:fixed 才相对 viewport 不被旋转) */}
+    {/* 我托管中:放回 OGStage 内部(position: absolute),跟着麻将一起旋转 90° → 手机横屏后用户视觉是横排,与麻将同向 */}
     {(view.trusted?.[seat] ?? false) && !localUntrusted && (
       <div style={{
-        position: 'fixed', bottom: 24, right: 20, zIndex: 90,
+        position: 'absolute', top: '50%', left: 12, transform: 'translateY(-50%)', zIndex: 70,
         display: 'flex', alignItems: 'center', gap: 8,
         background: 'rgba(6,32,24,.9)', border: '1px solid rgba(255,179,107,.6)',
         borderRadius: 999, padding: '6px 14px', fontSize: 13,
