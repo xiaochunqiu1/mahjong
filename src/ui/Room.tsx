@@ -35,7 +35,6 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState('');
-  const copiedRoomRef = useRef(false);
   const resumeTriedRef = useRef(false);
   const [voiceMicOn, setVoiceMicOnState] = useState(isMicOn);        // 来自全局 store（大厅/对局共享）
   const [voiceSpeakerOn, setVoiceSpeakerOnState] = useState(isSpeakerOn);
@@ -61,9 +60,17 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
   }, [session]);
 
   // 方案2：重进链接时有旧 session → 自动 resumeSeat 恢复原座位（身份不丢）
+  // 但：URL 若带了【另一个】房间号（朋友发来新链接）→ 放弃旧身份，加入新房间
   useEffect(() => {
     if (!session || resumeTriedRef.current) return;
     resumeTriedRef.current = true;
+    const urlRoom = new URLSearchParams(window.location.search).get('room');
+    if (urlRoom && urlRoom !== session.roomId) {
+      try { localStorage.removeItem('qz-mj-room'); } catch { /* ignore */ }
+      setSession(null);
+      setErr('');
+      return;
+    }
     apiResumeSeat(session.roomId, session.token)
       .then((v) => { setView(v); setErr(''); })
       .catch(() => {
@@ -73,15 +80,6 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // 方案1：建房成功自动复制房间号到剪贴板
-  useEffect(() => {
-    if (view && session && !copiedRoomRef.current) {
-      copiedRoomRef.current = true;
-      copyText(session.roomId, '房间号已复制');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, session]);
 
   const copyText = (t: string, label: string) => {
     try {
@@ -219,9 +217,7 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
               onClick={() => copyText(location.origin + location.pathname + '?r=' + Date.now() + '&room=' + view.roomId, '房间链接已复制')}>🔗 复制房间链接</button>
           </div>
           <p style={{ textAlign: 'center', opacity: .7, fontSize: 12, margin: '6px 0 10px', lineHeight: 1.6 }}>
-            {copied
-              ? copied + '，去微信聊天粘贴发给朋友（会关闭本页）'
-              : '房间号已自动复制！去聊天粘贴发给朋友，发完重新打开本链接即可自动回到房间'}
+            {copied || '去聊天粘贴发给好友，发完重新打开本链接即可自动回到房间'}
           </p>
           <div className="room-players">
             {view.players.map((p, i) => (
