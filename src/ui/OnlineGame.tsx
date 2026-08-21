@@ -58,6 +58,7 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound, on
   const lastEventRef = useRef<string>('');
   const [confetti, setConfetti] = useState<{ id: number; bursts: { id: string; x: number; y: number; delay: number; pieces: { angle: number; dist: number; color: string; size: number }[] }[] } | null>(null);
   const [settlePanelOpen, setSettlePanelOpen] = useState(false);
+  const [localUntrusted, setLocalUntrusted] = useState(false);
   const [voiceMicOn, setVoiceMicOnState] = useState(isMicOn);    // 来自全局 store（大厅/对局共享）
   const [voiceSpeakerOn, setVoiceSpeakerOnState] = useState(isSpeakerOn);
   useEffect(() => onVoiceChange(() => { setVoiceMicOnState(isMicOn()); setVoiceSpeakerOnState(isSpeakerOn()); }), []);
@@ -415,7 +416,7 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound, on
       }}
     />
     {/* 我托管中：右下角横幅(必须在 OGStage 旋转容器外,position:fixed 才相对 viewport 不被旋转) */}
-    {(view.trusted?.[seat] ?? false) && (
+    {(view.trusted?.[seat] ?? false) && !localUntrusted && (
       <div style={{
         position: 'fixed', bottom: 24, right: 20, zIndex: 90,
         display: 'flex', alignItems: 'center', gap: 8,
@@ -424,7 +425,7 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound, on
         whiteSpace: 'nowrap', boxShadow: '0 2px 10px rgba(0,0,0,.4)',
       }}>
         <span style={{ color: '#ffb36b' }}>⏳ 你已托管</span>
-        <button className="btn btn-gold" style={{ padding: '4px 14px', fontSize: 12 }} onClick={onUntrust}>取消托管</button>
+        <button className="btn btn-gold" style={{ padding: '4px 14px', fontSize: 12 }} onClick={() => { setLocalUntrusted(true); onUntrust(); }}>取消托管</button>
       </div>
     )}
     <VoiceSession roomId={session.roomId} token={session.token} micOn={voiceMicOn} speakerOn={voiceSpeakerOn} />
