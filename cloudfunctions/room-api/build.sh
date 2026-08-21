@@ -8,7 +8,7 @@ ROOT=../..
 OUT=.
 
 # 用 esbuild 打包（CloudBase Nodejs 运行时直接跑产物，无需编译步骤）
-npx --prefix "$ROOT" esbuild index.ts \
+npx --prefix "$ROOT" esbuild index.entry.ts \
   --bundle \
   --platform=node \
   --target=node18 \

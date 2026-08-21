@@ -30,7 +30,8 @@ export interface OnlineRoomView {
   }[];
   phase: { t: string; discard?: number; from?: number } | null;
   current: number;
-  waitingNext: boolean;   // 本局已结算，等待房主点"下一局"
+  waitingNext: boolean;   // 本局已结算，等待所有在场真人点"下一局"
+  nextReady: number[];    // 已同意"下一局"的真人座位
   lastDiscardSeat: number | null;  // 最近出牌人的座位（服务端解析，客户端牌河高亮用）
   yourTurn: boolean;
   canRespond: boolean;
@@ -86,7 +87,7 @@ async function call(action: string, payload: any): Promise<any> {
 
 // ---- 业务 API（7 接口 + poll）----
 
-export async function apiCreateRoom(name: string, rounds: 4 | 8): Promise<{ roomId: string; token: string; view: OnlineRoomView }> {
+export async function apiCreateRoom(name: string, rounds: number): Promise<{ roomId: string; token: string; view: OnlineRoomView }> {
   const r = await call('createRoom', { name, rounds });
   return { roomId: r.roomId, token: r.token, view: r.view };
 }

@@ -31,7 +31,6 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
     const q = new URLSearchParams(window.location.search).get('room');
     return q || '';
   });
-  const [rounds, setRounds] = useState<4 | 8>(4);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState('');
@@ -109,7 +108,7 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
     setBusy(true); setErr('');
     try {
       localStorage.setItem('qz-mj-name', name.trim());
-      const r = await apiCreateRoom(name.trim(), rounds);
+      const r = await apiCreateRoom(name.trim(), 9999); // 9999=不限局数
       saveSession({ roomId: r.roomId, token: r.token, name: name.trim() });
       setView(r.view);
     } catch (e) { setErr((e as Error).message); }
@@ -229,7 +228,7 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
               </div>
             ))}
           </div>
-          <div className="row"><span>局数</span><span>{view.rounds} 局</span></div>
+          <div className="row"><span>局数</span><span>不限</span></div>
           <div style={{ marginTop: 14, display: 'flex', gap: 10, justifyContent: 'center' }}>
             {me && !isHost && (
               <button className="btn btn-gold" onClick={toggleReady}>{me.ready ? '取消准备' : '准备'}</button>
@@ -275,21 +274,7 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
         {mode === 'create' ? (
           <>
             <div className="row" style={{ marginTop: 12 }}>
-              <span>局数</span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  type="button"
-                  className="btn"
-                  style={{ padding: '8px 22px', background: rounds === 4 ? 'var(--gold)' : 'transparent', color: rounds === 4 ? '#3a2c05' : 'var(--rice)', border: '1px solid rgba(244,234,216,.4)', fontWeight: rounds === 4 ? 700 : 400 }}
-                  onClick={() => setRounds(4)}
-                >4 局</button>
-                <button
-                  type="button"
-                  className="btn"
-                  style={{ padding: '8px 22px', background: rounds === 8 ? 'var(--gold)' : 'transparent', color: rounds === 8 ? '#3a2c05' : 'var(--rice)', border: '1px solid rgba(244,234,216,.4)', fontWeight: rounds === 8 ? 700 : 400 }}
-                  onClick={() => setRounds(8)}
-                >8 局</button>
-              </div>
+              <span>局数</span><span style={{ opacity: .8 }}>不限</span>
             </div>
             <button className="btn btn-gold" style={{ width: '100%', marginTop: 16 }} disabled={busy} onClick={doCreate}>
               {busy ? '创建中…' : '创建房间'}

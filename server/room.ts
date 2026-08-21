@@ -37,7 +37,7 @@ export interface RoomState {
   id: string;                 // 4 位数字房间码
   createdAt: number;
   phase: RoomPhase;
-  rounds: 4 | 8;
+  rounds: number; // 局数上限(9999=不限)
   players: (SeatPlayer | null)[]; // 固定 4 座
   hostToken: string;
   version: number;            // 状态版本号（客户端比对）
@@ -48,7 +48,8 @@ export interface RoomState {
   roundNo: number;            // 1-based
   botTickAt: number;          // 上次 bot 行动时间戳
   turnStartedAt: number;      // 当前 phase 开始时间戳（用于客户端倒计时）
-  waitingNext: boolean;       // 本局结束等待房主点"下一局"（避免自动开新局吞掉结算页）
+  waitingNext: boolean;       // 本局结束等待所有在场真人点"下一局"（避免自动开新局吞掉结算页）
+  nextReady: number[];        // 已同意"下一局"的真人座位（全员同意才开新局；退出者自动不计）
 }
 
 export interface RoomStorage {
@@ -79,7 +80,8 @@ export interface RoomView {
   }[];
   phase: { t: string; discard?: number; from?: number } | null;   // 对局阶段 + 响应阶段出牌 kind / 出牌人座位
   current: number;
-  waitingNext: boolean;         // 本局已结算，等待房主点"下一局"
+  waitingNext: boolean;         // 本局已结算，等待所有在场真人点"下一局"
+  nextReady: number[];         // 已同意"下一局"的真人座位
   lastDiscardSeat: number | null;  // 最近出牌人的座位（客户端高亮牌河最后一张；不依赖名字解析）
   botSeatLast: number;              // 上次响应的 bot 座位（响应窗口公平轮转，避免固定 seat 顺序造成某家永远优先）
   yourTurn: boolean;
@@ -115,7 +117,7 @@ export class RoomManager {
 
   // ---------------- 建房 / 加入 ----------------
 
-  async createRoom(name: string, rounds: 4 | 8): Promise<{ roomId: string; token: string; view: RoomView }> {
+  async createRoom(name: string, rounds: number): Promise<{ roomId: string; token: string; view: RoomView }> {
     let roomId = newRoomId();
     let room: RoomState | null = null;
     for (let i = 0; i < 20; i++) {
@@ -137,6 +139,7 @@ export class RoomManager {
         botTickAt: 0,
         turnStartedAt: 0,
         waitingNext: false,
+        nextReady: [],
         lastDiscardSeat: null,
         botSeatLast: 3,
       };
@@ -271,8 +274,9 @@ export class RoomManager {
       room.version++;
       room.lastEvent = `${p.name} 离开了房间`;
     } else {
-      // 对局中离开：座位交给 bot 托管
+      // 对局中离开：座位交给 bot 托管（下一局投票自动不计）
       room.players[p.seat] = { ...this.botSeat(p.seat), online: false };
+      room.nextReady = room.nextReady.filter((s) => s !== p.seat);
       room.version++;
       room.lastEvent = `${p.name} 托管离开`;
     }
@@ -457,21 +461,31 @@ export class RoomManager {
     }
   }
 
-  /** 房主点"下一局"：开启新一局（整场未完时） */
+  /** 真人点"下一局"（全员同意才开新局；退出者自动不计——2026-08-21 用户要求） */
   async nextRound(roomId: string, token: string): Promise<RoomView> {
     const room = await this.mustLoad(roomId);
     if (room.phase !== 'playing' || !room.waitingNext) throw new RoomError('当前不在等待下一局的状态');
     const p = this.playerByToken(room, token);
-    if (room.hostToken !== token && p.seat !== 0) throw new RoomError('只有房主可以开始下一局');
-    room.roundNo++;
-    room.state = createRoundState(room.match!, Math.floor(Math.random() * 1e9), room.match!.dealer);
-    room.botTickAt = Date.now();
-    room.turnStartedAt = Date.now();
-    room.waitingNext = false;
+    if (p.isBot) throw new RoomError('电脑不用点下一局');
+    if (!room.nextReady.includes(p.seat)) room.nextReady.push(p.seat);
+    // 所有【在场真人】（未退出的真人玩家）都已同意 → 开新局
+    const humans = room.players.filter((x) => x && !x.isBot).map((x) => x.seat);
+    if (humans.length > 0 && humans.every((s) => room.nextReady.includes(s))) {
+      room.roundNo++;
+      room.state = createRoundState(room.match!, Math.floor(Math.random() * 1e9), room.match!.dealer);
+      room.botTickAt = Date.now();
+      room.turnStartedAt = Date.now();
+      room.waitingNext = false;
+      room.nextReady = [];
+      room.version++;
+      room.lastEvent = `第 ${room.roundNo} 局开始`;
+      await this.storage.save(room);
+      await this.tickBots(room);
+      return this.buildView(room, token);
+    }
     room.version++;
-    room.lastEvent = `第 ${room.roundNo} 局开始`;
+    room.lastEvent = `${p.name} 已同意开始下一局`;
     await this.storage.save(room);
-    await this.tickBots(room);
     return this.buildView(room, token);
   }
 

@@ -46,7 +46,6 @@ export default function App() {
     if (room) return 'join'; // 带房间号链接 → 直接进加入页(房间号已预填)
     return r || window.location.hash.slice(1) || '';
   });
-  const [rounds, setRounds] = useState<4 | 8>(4);
   // 背景乐：localStorage 持久化(首次默认开;用户关过后下次进入保持关闭——2026-08-20 用户明确)
   const [bgmOn, setBgmOn] = useState<boolean>(getBgm);
 
@@ -138,7 +137,7 @@ export default function App() {
 
   const go = (p: string) => { unlockAudio(); window.location.hash = p; };
   if (route === '' || route === 'home') return <Home go={go} bgmOn={bgmOn} onToggleBgm={toggleBgm} />;
-  if (route === 'game') return <Game rounds={rounds} onExit={() => go('')} />;
+  if (route === 'game') return <Game rounds={9999} onExit={() => go('')} />; // 9999=不限局数
   if (route === 'create') return <Room go={go} mode="create" />;
   if (route === 'join') return <Room go={go} mode="join" />;
   if (route === 'rules') return <Rules go={go} />;
@@ -148,10 +147,7 @@ export default function App() {
     return (
       <div className="stage pregame stage-portrait">
         <h2>单人游戏</h2>
-        <div className="rounds-pick">
-          <div className={rounds === 4 ? 'on' : ''} onClick={() => setRounds(4)}>4 局 · 约 20 分钟</div>
-          <div className={rounds === 8 ? 'on' : ''} onClick={() => setRounds(8)}>8 局 · 约 40 分钟</div>
-        </div>
+        <p style={{ opacity: .75, fontSize: 13, margin: '8px 0 16px' }}>不限局数，想玩几局玩几局</p>
         <button className="btn btn-gold" onClick={() => go('game')}>开始</button>
         <span className="btn btn-ghost" style={{ padding: '8px 20px' }} onClick={() => go('')}>返回</span>
       </div>

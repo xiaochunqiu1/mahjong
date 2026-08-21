@@ -9,6 +9,7 @@ import { kindOf, type GameAction, type RoundResult } from '../engine/index.js';
 import { TileFace } from './TileFace.js';
 import { playForEvent, speak, chord } from '../game/sound.js';
 import { OGStage, windOfSeat } from './OGStage.js';
+import { SoundPanel } from './SoundPanel.js';
 
 const NAMES = ['我', '阿美', '阿强', '阿珠'] as const;
 
@@ -71,13 +72,14 @@ function rankText(scores: number[]): string {
   return `${sorted.indexOf(scores[0]!) + 1} 名`;
 }
 
-export function Game({ rounds: initialRounds, onExit }: { rounds: 4 | 8; onExit: () => void }) {
+export function Game({ rounds: initialRounds, onExit }: { rounds: number; onExit: () => void }) {
   const sessionRef = useRef<SoloSession | null>(null);
   const [, force] = useState(0);
-  const [rounds] = useState<4 | 8>(initialRounds);
+  const [rounds] = useState<number>(initialRounds);
 
   // 监听 engine log 末尾新增 → 触发音效 + TTS + 游金撒花/喊话
   const lastLogRef = useRef<string>('');
+  const [soundPanelOpen, setSoundPanelOpen] = useState(false);
   const [confetti, setConfetti] = useState<{ id: number; bursts: { id: string; x: number; y: number; delay: number; pieces: { angle: number; dist: number; color: string; size: number }[] }[] } | null>(null);
   useEffect(() => {
     const st = sessionRef.current?.state;
@@ -183,6 +185,13 @@ export function Game({ rounds: initialRounds, onExit }: { rounds: 4 | 8; onExit:
           style={{ position: 'absolute', top: 10, right: 14, zIndex: 10, background: 'rgba(6,32,24,.6)', border: '1px solid rgba(232,201,95,.5)', color: '#ffe9a8', padding: '3px 12px', borderRadius: 999, fontSize: 12, cursor: 'pointer' }}
         >退出</button>
         <div className="overlay">
+          {/* 结算页声音面板(音效/背景乐,单机无"其他玩家")——和好友房一致 */}
+          <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 60 }}>
+            <button className="tb-mic" onClick={() => setSoundPanelOpen((v) => !v)} title="声音"><span className="ic">🔊</span></button>
+            {soundPanelOpen && (
+              <SoundPanel showVoice={false} voiceOn={false} onToggleVoice={() => {}} onClose={() => setSoundPanelOpen(false)} />
+            )}
+          </div>
           <div className="card">
             <h2>{result.liuju ? '流 局' : `${NAMES[result.winner]}${winText(result.score.winType)}`}</h2>
             {/* 四家积分表：当局得分 + 累计积分（和好友房风格一致） */}
@@ -206,7 +215,7 @@ export function Game({ rounds: initialRounds, onExit }: { rounds: 4 | 8; onExit:
               {!s.match.over ? (
                 <button className="btn btn-gold" style={{ padding: '0 28px', height: 40 }}
                   onClick={() => { nextRound(s); force((n) => n + 1); }}>
-                  下一局（第 {s.match.roundNo}/{s.match.config.rounds} 局）
+                  下一局（第 {s.match.roundNo} 局）
                 </button>
               ) : (
                 <span />

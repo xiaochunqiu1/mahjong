@@ -9,6 +9,7 @@ import { sortHandForDisplay } from '../game/sortHand.js';
 import { createPortal } from 'react-dom';
 import { triggerFromEvent, speakTile, speak, chord } from '../game/sound.js';
 import { isMicOn, isSpeakerOn, setMicOn, setSpeakerOn, onVoiceChange } from '../game/voice.js';
+import { SoundPanel } from './SoundPanel.js';
 import type { OnlineRoomView } from '../game/online.js';
 import { OGStage, windOfSeat, type SeatInfo } from './OGStage.js';
 import { VoiceSession } from './VoiceSession.js';
@@ -55,6 +56,7 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound }: 
   // 监听 lastEvent 变化 → 触发音效 + 游金撒花/喊话
   const lastEventRef = useRef<string>('');
   const [confetti, setConfetti] = useState<{ id: number; bursts: { id: string; x: number; y: number; delay: number; pieces: { angle: number; dist: number; color: string; size: number }[] }[] } | null>(null);
+  const [settlePanelOpen, setSettlePanelOpen] = useState(false);
   const [voiceMicOn, setVoiceMicOnState] = useState(isMicOn);    // 来自全局 store（大厅/对局共享）
   const [voiceSpeakerOn, setVoiceSpeakerOnState] = useState(isSpeakerOn);
   useEffect(() => onVoiceChange(() => { setVoiceMicOnState(isMicOn()); setVoiceSpeakerOnState(isSpeakerOn()); }), []);
@@ -210,10 +212,23 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound }: 
 
   // 本局结束弹层
   if (isOver && over) {
+    const meIsBot = view.players.find((p) => p.seat === seat)?.isBot ?? false;
+    const myNextReady = (view.nextReady ?? []).includes(seat);
+    const humans = view.players.filter((p) => !p.isBot);
+    const readyCount = humans.filter((p) => (view.nextReady ?? []).includes(p.seat)).length;
     return (
       <div className="stage online-game og">
         {confettiPortal}
         <div className="overlay">
+          {/* 结算页声音面板(音效/背景乐/其他玩家)——与大厅/对局一致 */}
+          <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 60 }}>
+            <button className="tb-mic" onClick={() => setSettlePanelOpen((v) => !v)} title="声音"><span className="ic">🔊</span></button>
+            {settlePanelOpen && (
+              <SoundPanel showVoice voiceOn={voiceSpeakerOn}
+                onToggleVoice={() => setSpeakerOn(!isSpeakerOn())}
+                onClose={() => setSettlePanelOpen(false)} />
+            )}
+          </div>
           <div className="card">
             <h2>{over.liuju ? '流局' : over.winner === seat ? '我赢了！' : over.winType === 'ron' ? '点炮' : '其他玩家胡了'}</h2>
             <div className="score-line">{over.liuju ? '无人胡牌' : `${view.players.find((p) => p.seat === over.winner)?.name ?? '?'} ${over.winType}`}</div>
@@ -231,8 +246,11 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound }: 
               ))}
             </div>
             <div className="actions-row" style={{ justifyContent: 'space-between', marginTop: 16, padding: '0 16px' }}>
-              {view.roomPhase === 'playing' && view.waitingNext && seat === 0 && nextRound && (
-                <button className="btn btn-gold" onClick={() => nextRound()}>下一局</button>
+              {/* 所有真人都有"下一局"：全员同意才开；退出者不计 */}
+              {view.roomPhase === 'playing' && view.waitingNext && !meIsBot && nextRound && (
+                myNextReady
+                  ? <button className="btn btn-gold" style={{ opacity: .6, cursor: 'default' }} disabled>已同意（{readyCount}/{humans.length}）…</button>
+                  : <button className="btn btn-gold" onClick={() => nextRound()}>下一局</button>
               )}
               <button className="btn btn-sea" onClick={onLeave}>离开房间</button>
             </div>

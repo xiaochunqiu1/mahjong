@@ -482,7 +482,7 @@ export interface MatchLike {
   history: RoundResult[];
 }
 
-export function createMatch(seed: number, rounds: 4 | 8): MatchLike & { config: RuleConfig; seed: number } {
+export function createMatch(seed: number, rounds: number): MatchLike & { config: RuleConfig; seed: number } {
   const rand = mulberry32(seed);
   const dealer = Math.floor(rand() * 4);
   return {

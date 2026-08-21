@@ -27,13 +27,13 @@ export interface PlayerState {
 }
 
 export interface RuleConfig {
-  rounds: 4 | 8;
+  rounds: number; // 局数上限(9999=不限,用户2026-08-21要求取消局数限制)
   liujuFloor: number; // 牌墙剩余此数量时流局，本项目 = 16
 }
 
 export interface RoomConfig {
   roomCode: string;
-  rounds: 4 | 8;
+  rounds: number; // 局数上限(9999=不限,用户2026-08-21要求取消局数限制)
   hostSeat: number;
 }
 

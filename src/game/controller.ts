@@ -24,7 +24,7 @@ export interface RecordEntry {
 }
 
 export interface SoloSession {
-  match: MatchLike & { config: { rounds: 4 | 8; liujuFloor: number } };
+  match: MatchLike & { config: { rounds: number; liujuFloor: number } };
   state: GameState | null;
   seed: number;
   humanSeat: number;
@@ -45,7 +45,7 @@ export interface SoloSession {
   lastAIMoveAt: number;
 }
 
-export function createSession(seed: number, rounds: 4 | 8, aiLevel = DEFAULT_AI_LEVEL): SoloSession {
+export function createSession(seed: number, rounds: number, aiLevel = DEFAULT_AI_LEVEL): SoloSession {
   const match = createMatch(seed, rounds);
   return {
     match,

@@ -115,7 +115,7 @@ exports.main = async (event: CloudEvent) => {
     console.log('[room-api] event keys:', Object.keys(event || {}), 'body type:', typeof (event as any)?.body, 'a.action:', a.action);
     switch (a.action) {
       case 'createRoom': {
-        const r = await manager.createRoom(String(a.name ?? ''), a.rounds === 8 ? 8 : 4);
+        const r = await manager.createRoom(String(a.name ?? ''), Number(a.rounds) > 0 ? Number(a.rounds) : 9999); // 9999=不限局数
         return { ok: true, ...r };
       }
       case 'joinRoom': {
