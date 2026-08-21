@@ -13,7 +13,11 @@ interface Session {
   roomId: string;
   token: string;
   name: string;
+  ts?: number;    // 保存时间戳(用于过期判断)
+  isOver?: boolean; // 房间已结束(整场 over 或结算页)→ 重进链接时不自动恢复
 }
+// session 超过 30 分钟视为过期——切出去发消息几分钟回来应保留,长时间不回来视为已结束
+const SESSION_TTL = 30 * 60 * 1000;
 
 const SEAT_NAMES = ['1 号位', '2 号位', '3 号位', '4 号位'];
 
@@ -58,11 +62,29 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
     return () => { if (pollTimer.current) window.clearInterval(pollTimer.current); };
   }, [session]);
 
+  // 房间进入结束状态（整场 over 或当局结算页）→ 给 session 标 isOver=true（重进链接时不再自动恢复）
+  useEffect(() => {
+    if (!view || !session || session.isOver) return;
+    const ended = view.roomPhase === 'over' || !!view.overResult;
+    if (ended) {
+      saveSession({ ...session, ts: Date.now(), isOver: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
+
   // 方案2：重进链接时有旧 session → 自动 resumeSeat 恢复原座位（身份不丢）
   // 但：URL 若带了【另一个】房间号（朋友发来新链接）→ 放弃旧身份，加入新房间
+  // 且：旧 session 已结束（isOver 标记 / 超过 30 分钟过期）→ 不恢复，让用户进入新房间
   useEffect(() => {
     if (!session || resumeTriedRef.current) return;
     resumeTriedRef.current = true;
+    const stale = !session.ts || (Date.now() - session.ts > SESSION_TTL);
+    if (session.isOver || stale) {
+      try { localStorage.removeItem('qz-mj-room'); } catch { /* ignore */ }
+      setSession(null);
+      setErr('');
+      return;
+    }
     const urlRoom = new URLSearchParams(window.location.search).get('room');
     if (urlRoom && urlRoom !== session.roomId) {
       try { localStorage.removeItem('qz-mj-room'); } catch { /* ignore */ }
@@ -109,7 +131,7 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
     try {
       localStorage.setItem('qz-mj-name', name.trim());
       const r = await apiCreateRoom(name.trim(), 9999); // 9999=不限局数
-      saveSession({ roomId: r.roomId, token: r.token, name: name.trim() });
+      saveSession({ roomId: r.roomId, token: r.token, name: name.trim(), ts: Date.now() });
       setView(r.view);
     } catch (e) { setErr((e as Error).message); }
     setBusy(false);
@@ -122,7 +144,7 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
     try {
       localStorage.setItem('qz-mj-name', name.trim());
       const r = await apiJoinRoom(roomIdInput.trim(), name.trim());
-      saveSession({ roomId: r.view.roomId, token: r.token, name: name.trim() });
+      saveSession({ roomId: r.view.roomId, token: r.token, name: name.trim(), ts: Date.now() });
       setView(r.view);
     } catch (e) { setErr((e as Error).message); }
     setBusy(false);
