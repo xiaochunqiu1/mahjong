@@ -584,7 +584,7 @@ body { display: flex; align-items: center; justify-content: center; overflow: hi
 /* 手机竖屏（与 App.tsx fit 的旋转条件一致）：跟随 OGStage 旋转 90°，屏幕居中 */
 @media (max-width: 700px) and (orientation: portrait) {
   .trust-banner {
-    top: 60vh; left: 50vw; bottom: auto;
+    top: 74vh; left: 50vw; bottom: auto;
     transform: translate(-50%, -50%) rotate(90deg);
   }
 }
