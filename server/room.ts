@@ -50,6 +50,7 @@ export interface RoomState {
   turnStartedAt: number;      // 当前 phase 开始时间戳（用于客户端倒计时）
   waitingNext: boolean;       // 本局结束等待所有在场真人点"下一局"（避免自动开新局吞掉结算页）
   nextReady: number[];        // 已同意"下一局"的真人座位（全员同意才开新局；退出者自动不计）
+  trusted: boolean[];         // 真人托管标记：超时自动托管 → 之后轮到由 AI 代打；真人可点"取消托管"
 }
 
 export interface RoomStorage {
@@ -82,6 +83,7 @@ export interface RoomView {
   current: number;
   waitingNext: boolean;         // 本局已结算，等待所有在场真人点"下一局"
   nextReady: number[];         // 已同意"下一局"的真人座位
+  trusted: boolean[];          // 托管中的座位（AI 代打）
   lastDiscardSeat: number | null;  // 最近出牌人的座位（客户端高亮牌河最后一张；不依赖名字解析）
   botSeatLast: number;              // 上次响应的 bot 座位（响应窗口公平轮转，避免固定 seat 顺序造成某家永远优先）
   yourTurn: boolean;
@@ -140,6 +142,7 @@ export class RoomManager {
         turnStartedAt: 0,
         waitingNext: false,
         nextReady: [],
+        trusted: [false, false, false, false],
         lastDiscardSeat: null,
         botSeatLast: 3,
       };
@@ -315,9 +318,31 @@ export class RoomManager {
           if (s.responses[seat] !== null) continue; // 已提交
           const seatP = room.players[seat];
           const isHuman = seatP && !seatP.isBot;
-          // 真人：等真人自己操作；超时（响应窗口 8s）后自动过
+          // 真人：已托管 → AI 代打(同 bot 逻辑,节流)；未托管超时(8s) → 自动托管 + 过
           if (isHuman) {
+            if (room.trusted[seat]) {
+              if (Date.now() - room.botTickAt < this.botStepMs) break;
+              let act: GameAction;
+              try { act = this.botDecide(s, seat); } catch { continue; }
+              const prevLen2 = s.log.length;
+              const beforePhase = s.phase.t;
+              applyAction(s, seat, act);
+              if (s.phase.t !== beforePhase) room.turnStartedAt = Date.now();
+              const newLog2 = s.log.slice(prevLen2);
+              const publicLog2 = newLog2.find((l) => /^(出牌|碰|吃|明杠|暗杠|加杠|补花|单游宣告|双游宣告|胡牌|流局|无人响应):/.test(l));
+              if (publicLog2) {
+                room.lastEvent = this.prettyLog(publicLog2, room.players);
+                room.lastDiscardSeat = this.parseDiscardSeat(publicLog2);
+              }
+              room.botTickAt = Date.now();
+              room.botSeatLast = (seat + 1) % 4;
+              room.version++;
+              didAction = true;
+              break;
+            }
             if (Date.now() - room.turnStartedAt < RESPONSE_MS) continue;
+            room.trusted[seat] = true;
+            room.lastEvent = `${seatP!.name} 超时托管`;
             const prevLen = s.log.length;
             applyAction(s, seat, { type: 'pass' });
             room.version++;
@@ -349,23 +374,44 @@ export class RoomManager {
         const seatP = room.players[cur];
         const isBot = !seatP || seatP.isBot;
         if (!isBot) {
-          // 轮到真人：超时（主回合 30s）后自动出牌兜底，避免游戏卡死
-          if (Date.now() - room.turnStartedAt < TURN_MS) break;
-          let act: GameAction;
-          try { act = this.humanTimeoutAct(s, cur); } catch { break; }
-          const prevLen = s.log.length;
-          const beforePhase = s.phase.t;
-          applyAction(s, cur, act);
-          if (s.phase.t !== beforePhase) room.turnStartedAt = Date.now();
-          const newLog = s.log.slice(prevLen);
-          const publicLog = newLog.find((l) => /^(出牌|碰|吃|明杠|暗杠|加杠|补花|单游宣告|双游宣告|胡牌|流局|无人响应):/.test(l));
-          if (publicLog) {
-            room.lastEvent = this.prettyLog(publicLog, room.players);
-            room.lastDiscardSeat = this.parseDiscardSeat(publicLog);
+          // 真人：已托管 → AI 代打(摸牌立即,出牌节流)；未托管超时(30s) → 自动托管 + 代打一次
+          if (room.trusted[cur]) {
+            if (s.phase.t === 'awaitDiscard' && Date.now() - room.botTickAt < this.botStepMs) break;
+            let act: GameAction;
+            try { act = this.botDecide(s, cur); } catch { break; }
+            const prevLen = s.log.length;
+            const beforePhase = s.phase.t;
+            applyAction(s, cur, act);
+            if (s.phase.t !== beforePhase) room.turnStartedAt = Date.now();
+            const newLog = s.log.slice(prevLen);
+            const publicLog = newLog.find((l) => /^(出牌|碰|吃|明杠|暗杠|加杠|补花|单游宣告|双游宣告|胡牌|流局|无人响应):/.test(l));
+            if (publicLog) {
+              room.lastEvent = this.prettyLog(publicLog, room.players);
+              room.lastDiscardSeat = this.parseDiscardSeat(publicLog);
+            }
+            room.botTickAt = Date.now();
+            room.version++;
+            didAction = true;
+          } else {
+            if (Date.now() - room.turnStartedAt < TURN_MS) break;
+            room.trusted[cur] = true;
+            room.lastEvent = `${seatP!.name} 超时托管`;
+            let act: GameAction;
+            try { act = this.humanTimeoutAct(s, cur); } catch { break; }
+            const prevLen = s.log.length;
+            const beforePhase = s.phase.t;
+            applyAction(s, cur, act);
+            if (s.phase.t !== beforePhase) room.turnStartedAt = Date.now();
+            const newLog = s.log.slice(prevLen);
+            const publicLog = newLog.find((l) => /^(出牌|碰|吃|明杠|暗杠|加杠|补花|单游宣告|双游宣告|胡牌|流局|无人响应):/.test(l));
+            if (publicLog) {
+              room.lastEvent = this.prettyLog(publicLog, room.players);
+              room.lastDiscardSeat = this.parseDiscardSeat(publicLog);
+            }
+            room.botTickAt = Date.now();
+            room.version++;
+            didAction = true;
           }
-          room.botTickAt = Date.now();
-          room.version++;
-          didAction = true;
         } else {
           // 摸牌（awaitDraw）立即执行（与单机 controller 一致：draw 不节流）；出牌/宣告等其余动作节流 botStepMs
           // 之前摸牌也节流 → 好友房每个 bot 回合 2 个节流（用户观察到"31-30-31-30"两个倒计时），比单机慢一倍
@@ -489,6 +535,20 @@ export class RoomManager {
     return this.buildView(room, token);
   }
 
+  /** 真人取消托管：恢复自己操作（托管后轮到由 AI 代打） */
+  async untrust(roomId: string, token: string): Promise<RoomView> {
+    const room = await this.mustLoad(roomId);
+    const p = this.playerByToken(room, token);
+    if (p.isBot) throw new RoomError('电脑无需取消托管');
+    if (room.trusted[p.seat]) {
+      room.trusted[p.seat] = false;
+      room.version++;
+      room.lastEvent = `${p.name} 取消托管`;
+      await this.storage.save(room);
+    }
+    return this.buildView(room, token);
+  }
+
   // ---------------- 视图构建 ----------------
 
   buildView(room: RoomState, token: string): RoomView {
@@ -515,6 +575,8 @@ export class RoomManager {
       phase: null,
       current: 0,
       waitingNext: false,
+      nextReady: room.nextReady ?? [],
+      trusted: room.trusted ?? [false, false, false, false],
       yourTurn: false,
       canRespond: false,
       legal: null,

@@ -32,6 +32,7 @@ export interface OnlineRoomView {
   current: number;
   waitingNext: boolean;   // 本局已结算，等待所有在场真人点"下一局"
   nextReady: number[];    // 已同意"下一局"的真人座位
+  trusted: boolean[];     // 托管中的座位（AI 代打）
   lastDiscardSeat: number | null;  // 最近出牌人的座位（服务端解析，客户端牌河高亮用）
   yourTurn: boolean;
   canRespond: boolean;
@@ -114,6 +115,11 @@ export async function apiNextRound(roomId: string, token: string): Promise<Onlin
 
 export async function apiSubmitAction(roomId: string, token: string, action: any): Promise<OnlineRoomView> {
   const r = await call('submitAction', { roomId, token, action2: action });
+  return r.view;
+}
+
+export async function apiUntrust(roomId: string, token: string): Promise<OnlineRoomView> {
+  const r = await call('untrust', { roomId, token });
   return r.view;
 }
 

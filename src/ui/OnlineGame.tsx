@@ -28,12 +28,13 @@ function actionText(a: any): string {
   }
 }
 
-export function OnlineGame({ view, session, submitAction, onLeave, nextRound }: {
+export function OnlineGame({ view, session, submitAction, onLeave, nextRound, onUntrust }: {
   view: OnlineRoomView;
   session: { roomId: string; token: string; name: string };
   submitAction: (action: any) => Promise<void>;
   onLeave: () => void;
   nextRound?: () => Promise<void>;
+  onUntrust: () => void;
 }) {
   const seat = view.seat;
   const goldKind = view.goldKind;
@@ -281,6 +282,7 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound }: 
         discards: topP?.discards ?? [],
         isDealer: seatIdx(topP) === view.dealer,
         active: view.current === seatIdx(topP),
+        trusted: topP ? view.trusted?.[topP.seat] : false,
       }}
       left={{
         seat: seatIdx(leftP),
@@ -295,6 +297,7 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound }: 
         discards: leftP?.discards ?? [],
         isDealer: seatIdx(leftP) === view.dealer,
         active: view.current === seatIdx(leftP),
+        trusted: leftP ? view.trusted?.[leftP.seat] : false,
       }}
       right={{
         seat: seatIdx(rightP),
@@ -309,11 +312,13 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound }: 
         discards: rightP?.discards ?? [],
         isDealer: seatIdx(rightP) === view.dealer,
         active: view.current === seatIdx(rightP),
+        trusted: rightP ? view.trusted?.[rightP.seat] : false,
       }}
       me={{
         seat: seat,
         name: '我',
         isBot: false,
+        trusted: view.trusted?.[seat] ?? false,
         wind: myWind,
         score: myScore,
         youjin: me?.youjin ?? 0,
@@ -409,6 +414,18 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound }: 
         submitAction({ type: 'discard', tile: t });
       }}
     />
+    {/* 我托管中：横幅 + 取消托管按钮 */}
+    {(view.trusted?.[seat] ?? false) && (
+      <div style={{
+        position: 'absolute', top: 64, left: '50%', transform: 'translateX(-50%)', zIndex: 70,
+        display: 'flex', alignItems: 'center', gap: 10,
+        background: 'rgba(6,32,24,.85)', border: '1px solid rgba(255,179,107,.6)',
+        borderRadius: 999, padding: '6px 16px', fontSize: 13,
+      }}>
+        <span style={{ color: '#ffb36b' }}>⏳ 你已托管，AI 代打中</span>
+        <button className="btn btn-gold" style={{ padding: '4px 14px', fontSize: 12 }} onClick={onUntrust}>取消托管</button>
+      </div>
+    )}
     <VoiceSession roomId={session.roomId} token={session.token} micOn={voiceMicOn} speakerOn={voiceSpeakerOn} />
     </>
   );

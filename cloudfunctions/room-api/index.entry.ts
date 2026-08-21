@@ -137,6 +137,10 @@ exports.main = async (event: CloudEvent) => {
       case 'resumeSeat': {
         return { ok: true, view: await manager.resumeSeat(String(a.roomId), String(a.token)) };
       }
+      case 'untrust': {
+        const r = await manager.untrust(String(a.roomId ?? ''), String(a.token ?? ''));
+        return { ok: true, ...r };
+      }
       case 'leaveRoom': {
         return await manager.leaveRoom(String(a.roomId), String(a.token));
       }

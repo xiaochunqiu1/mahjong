@@ -25,6 +25,7 @@ export interface SeatInfo {
   discards: number[];
   isDealer: boolean;
   active: boolean;         // 当前轮到此座位行动
+  trusted?: boolean;       // 托管中（AI 代打）
 }
 
 export interface OGActions {
@@ -108,6 +109,7 @@ function SeatInfoBlock({ info, pos }: { info: SeatInfo; pos: 'top' | 'left' | 'r
       <div className="tags">
         {info.youjin === 1 && <span className="tag">单游</span>}
         {info.youjin === 2 && <span className="tag">双游</span>}
+        {info.trusted && <span className="tag" style={{ color: '#ffb36b', borderColor: 'rgba(255,179,107,.5)' }}>托管</span>}
         {info.active && <span className="tag on">行动</span>}
       </div>
       {pos !== 'me' && info.melds && info.melds.length > 0 && (

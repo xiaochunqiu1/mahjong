@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   apiCreateRoom, apiJoinRoom, apiSetReady, apiStartMatch, apiNextRound, apiLeaveRoom, apiPoll, apiSubmitAction,
-  apiResumeSeat,
+  apiResumeSeat, apiUntrust,
   type OnlineRoomView,
 } from '../game/online.js';
 import { OnlineGame } from './OnlineGame.js';
@@ -207,6 +207,10 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
         session={session}
         submitAction={submitAction}
         onLeave={doLeave}
+        onUntrust={async () => {
+          if (!session) return;
+          try { setView(await apiUntrust(session.roomId, session.token)); } catch (e) { setErr((e as Error).message); }
+        }}
         nextRound={async () => {
           if (!session) return;
           try { setView(await apiNextRound(session.roomId, session.token)); } catch (e) { setErr((e as Error).message); }
