@@ -218,8 +218,10 @@ export function Room({ go, mode }: { go: (p: string) => void; mode: 'create' | '
             <button className="btn" style={{ padding: '6px 16px', fontSize: 13 }}
               onClick={() => copyText(location.origin + location.pathname + '?r=' + Date.now() + '&room=' + view.roomId, '房间链接已复制')}>🔗 复制房间链接</button>
           </div>
-          <p style={{ textAlign: 'center', opacity: .7, fontSize: 12, margin: '6px 0 10px' }}>
-            {copied || '去微信聊天粘贴发给朋友，发完点左上角返回键回到房间'}
+          <p style={{ textAlign: 'center', opacity: .7, fontSize: 12, margin: '6px 0 10px', lineHeight: 1.6 }}>
+            {copied
+              ? copied + '，去微信聊天粘贴发给朋友（会关闭本页）'
+              : '房间号已自动复制！去聊天粘贴发给朋友，发完重新打开本链接即可自动回到房间'}
           </p>
           <div className="room-players">
             {view.players.map((p, i) => (
