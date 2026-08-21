@@ -417,12 +417,13 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound, on
     {/* 我托管中：横幅 + 取消托管按钮 */}
     {(view.trusted?.[seat] ?? false) && (
       <div style={{
-        position: 'absolute', top: 64, left: '50%', transform: 'translateX(-50%)', zIndex: 70,
-        display: 'flex', alignItems: 'center', gap: 10,
-        background: 'rgba(6,32,24,.85)', border: '1px solid rgba(255,179,107,.6)',
-        borderRadius: 999, padding: '6px 16px', fontSize: 13,
+        position: 'absolute', bottom: 96, right: 80, zIndex: 70,
+        display: 'flex', alignItems: 'center', gap: 8,
+        background: 'rgba(6,32,24,.88)', border: '1px solid rgba(255,179,107,.6)',
+        borderRadius: 999, padding: '6px 14px', fontSize: 13,
+        whiteSpace: 'nowrap', boxShadow: '0 2px 10px rgba(0,0,0,.4)',
       }}>
-        <span style={{ color: '#ffb36b' }}>⏳ 你已托管，AI 代打中</span>
+        <span style={{ color: '#ffb36b' }}>⏳ 你已托管</span>
         <button className="btn btn-gold" style={{ padding: '4px 14px', fontSize: 12 }} onClick={onUntrust}>取消托管</button>
       </div>
     )}
