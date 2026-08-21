@@ -415,20 +415,20 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound, on
         submitAction({ type: 'discard', tile: t });
       }}
     />
-    {/* 我托管中:在 OGStage 内,writing-mode: vertical-rl(文字竖排)
-        + OGStage 自身旋转 90° → 物理手机:竖长条(像手牌)+ 文字横排(和手牌字同向) */}
-    {(view.trusted?.[seat] ?? false) && !localUntrusted && (
+    {/* 我托管中:Portal 渲染到 body(position:fixed 真正相对屏幕)+ 横排文字
+        → 和界面所有文字(退出/剩X张/第N局)同一方向 */}
+    {(view.trusted?.[seat] ?? false) && !localUntrusted && createPortal(
       <div style={{
-        position: 'absolute', top: '50%', left: 12, transform: 'translateY(-50%)', zIndex: 70,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-        writingMode: 'vertical-rl',
+        position: 'fixed', bottom: 150, left: '50%', transform: 'translateX(-50%)', zIndex: 90,
+        display: 'flex', alignItems: 'center', gap: 8,
         background: 'rgba(6,32,24,.9)', border: '1px solid rgba(255,179,107,.6)',
-        borderRadius: 999, padding: '10px 8px', fontSize: 13,
-        boxShadow: '0 2px 10px rgba(0,0,0,.4)',
+        borderRadius: 999, padding: '6px 14px', fontSize: 13,
+        whiteSpace: 'nowrap', boxShadow: '0 2px 10px rgba(0,0,0,.4)',
       }}>
         <span style={{ color: '#ffb36b' }}>⏳ 你已托管</span>
-        <button className="btn btn-gold" style={{ padding: '4px 12px', fontSize: 12, writingMode: 'horizontal-tb' }} onClick={() => { setLocalUntrusted(true); onUntrust(); }}>取消托管</button>
-      </div>
+        <button className="btn btn-gold" style={{ padding: '4px 14px', fontSize: 12 }} onClick={() => { setLocalUntrusted(true); onUntrust(); }}>取消托管</button>
+      </div>,
+      document.body,
     )}
     <VoiceSession roomId={session.roomId} token={session.token} micOn={voiceMicOn} speakerOn={voiceSpeakerOn} />
     </>
