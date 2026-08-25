@@ -15,7 +15,10 @@
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { height: 100%; background: #0d1b1e; font-family: var(--sans); }
+html, body { height: 100%; background: #07281f; font-family: var(--sans); }
+/* iOS 安全区:页面背景铺满(viewport-fit=cover 下 body 延伸到刘海/home 指示器区),
+   内容避让用 stage 自身 padding;上下"空白"= 牌桌深绿,视觉全屏 */
+body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing: border-box; }
 body { display: flex; align-items: center; justify-content: center; overflow: hidden; }
 
 /* 发牌动画 */
@@ -39,6 +42,7 @@ body { display: flex; align-items: center; justify-content: center; overflow: hi
 .stage-portrait {
   width: 100vw;
   height: 100vh;
+  height: 100dvh; /* 动态视口高:iOS 地址栏收起时占满,消除底部空白 */
   max-width: 100vw;
   max-height: 100vh;
   border-radius: 0;

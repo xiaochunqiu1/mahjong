@@ -378,6 +378,14 @@ function submitResponse(state: GameState, seat: number, action: GameAction): Gam
   return resolveResponses(state);
 }
 
+
+/** 吃/碰/杠成功后,从出牌方牌河移除被吃碰的那张(牌河应消失) */
+function removeFromDiscards(state: GameState, from: number, kind: number): void {
+  const p = state.players[from]!;
+  const di = p.discards.lastIndexOf(kind);
+  if (di >= 0) p.discards.splice(di, 1);
+}
+
 function resolveResponses(state: GameState): GameState {
   const ph = state.phase as Extract<Phase, { t: 'awaitResponse' }>;
   const kind = ph.discard;
@@ -399,6 +407,7 @@ function resolveResponses(state: GameState): GameState {
         p.hand.splice(i, 1);
       }
       p.melds.push({ type: 'mingGang', kind, tiles: [kind, kind, kind, kind], fromSeat: from });
+      removeFromDiscards(state, from, kind);
       state.log.push(`明杠:seat${s}:${kindName(kind)}`);
       state.current = s;
       return gangSupplement(state, p);
@@ -412,6 +421,7 @@ function resolveResponses(state: GameState): GameState {
         p.hand.splice(i, 1);
       }
       p.melds.push({ type: 'peng', kind, tiles: [kind, kind, kind], fromSeat: from });
+      removeFromDiscards(state, from, kind);
       state.log.push(`碰:seat${s}:${kindName(kind)}`);
       state.current = s;
       state.phase = { t: 'awaitDiscard' };
@@ -429,6 +439,7 @@ function resolveResponses(state: GameState): GameState {
       }
       const lo = Math.min(kind, r.useKinds[0], r.useKinds[1]);
       p.melds.push({ type: 'chi', kind: lo, tiles: [kind, ...r.useKinds], fromSeat: from });
+      removeFromDiscards(state, from, kind);
       state.log.push(`吃:seat${s}:${kindName(kind)}`);
       state.current = s;
       state.phase = { t: 'awaitDiscard' };
