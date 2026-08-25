@@ -61,6 +61,14 @@ function canFormSets(c: number[], j: number, n: number): boolean {
       }
     }
   }
+  // 分支二补：顺子 (k-1) k (k+1)——差最小位用金补前一位（如 8筒9筒 + 金=7筒）
+  // 2026-08-25 修复：此前只支持向后补金(k+1/k+2)，向前补金永远判不了，胡按钮不出现
+  if (isSuit(k) && k % 9 >= 1 && k % 9 <= 7 && j >= 1 && c[k + 1]! > 0) {
+    const cc = c.slice();
+    cc[k]! -= 1;
+    cc[k + 1]! -= 1;
+    if (canFormSets(cc, j - 1, n - 1)) return true;
+  }
   return false;
 }
 
