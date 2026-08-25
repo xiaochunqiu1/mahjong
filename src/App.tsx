@@ -101,6 +101,8 @@ export default function App() {
       const isMobile = isTouch && vw < 700;
       // 真物理方向:matchMedia 优先(vh/vw 在横屏手机浏览器可能仍报竖屏)
       const isPortrait = typeof window !== 'undefined' && !!window.matchMedia?.('(orientation: portrait)').matches;
+      // iOS 检测:iOS 横屏用 cover(放大填满,可裁切边缘);安卓/桌面保持 contain(全部可见)——2026-08-25 用户要求
+      const isIOS = typeof navigator !== 'undefined' && /(iphone|ipad|ipod)/i.test(navigator.userAgent || '');
       // 对局状态：game 路由 OR stage 内部含 .online-game（Room 嵌入的联机对局）
       const isPlayingStage = (s: HTMLElement) =>
         s.classList.contains('online-game') || (route === 'game' && !s.classList.contains('stage-portrait'));
@@ -114,7 +116,8 @@ export default function App() {
           const k = Math.min(vw / 375, vh / 812) * 0.96;
           s.style.transform = `rotate(90deg) scale(${k})`;
         } else {
-          const k = Math.min(vw / 812, vh / 375);
+          // iOS:cover(放大填满一边,可能裁切边缘);其他:contain(全部可见)
+          const k = isIOS ? Math.max(vw / 812, vh / 375) : Math.min(vw / 812, vh / 375);
           s.style.transform = `scale(${k})`;
         }
       });
