@@ -493,7 +493,7 @@ body { display: flex; align-items: center; justify-content: center; overflow: hi
 
 /* ---- 底部手牌（平排） ---- */
 .og .my-hand-flat {
-  position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); z-index: 5;
+  position: absolute; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); z-index: 5;
   display: flex; gap: 2px; align-items: flex-end;
 }
 .og .my-hand-flat .tile { width: 34px; height: 48px; transition: transform .15s; }
@@ -502,7 +502,7 @@ body { display: flex; align-items: center; justify-content: center; overflow: hi
 .og .my-hand-flat .tile.just-drawn { transform: translateY(-8px); }
 
 /* ---- 我的副露/花（手牌左侧） ---- */
-.og .my-melds { position: absolute; left: 12px; bottom: 60px; display: flex; gap: 6px; z-index: 4; }
+.og .my-melds { position: absolute; left: 12px; bottom: calc(60px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 6px; z-index: 6; }
 
 /* ---- 好友房语音（对局 topbar + 大厅按钮） ---- */
 .tb-mic { position: relative; background: rgba(6,32,24,.6); border: 1px solid rgba(232,201,95,.5); color: #ffe9a8; padding: 3px 10px; border-radius: 999px; font-size: 13px; cursor: pointer; }
@@ -533,7 +533,7 @@ body { display: flex; align-items: center; justify-content: center; overflow: hi
 .voice-btn { background: rgba(232,201,95,.15); border: 1px solid var(--gold); color: var(--gold-light); padding: 6px 18px; border-radius: 999px; font-size: 14px; cursor: pointer; }
 .voice-btn-close { border-color: rgba(233,91,75,.7); color: #ff9f7a; background: rgba(233,91,75,.12); }
 .voice-remote { display: none; } /* 纯语音，不显示远端视频占位 */
-.og .my-flowers { position: absolute; left: 12px; bottom: 24px; display: flex; gap: 3px; align-items: center; z-index: 4; }
+.og .my-flowers { position: absolute; left: 12px; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 3px; align-items: center; z-index: 6; }
 .og .flower-chip { background: rgba(201,162,39,.2); border: 1px solid var(--gold); color: var(--gold-light); font-size: 10px; border-radius: 4px; padding: 2px 6px; font-family: var(--serif); }
 
 /* ---- 圆形操作按钮 ---- */
