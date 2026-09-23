@@ -34,6 +34,7 @@ export interface OnlineRoomView {
   nextReady: number[];    // 已同意"下一局"的真人座位
   trusted: boolean[];     // 托管中的座位（AI 代打）
   lastDiscardSeat: number | null;  // 最近出牌人的座位（服务端解析，客户端牌河高亮用）
+  pendingResponses?: (string | null)[] | null; // 响应窗口内各座位已喊出的胡/碰/杠（喊牌事前可见，2026-09-23）
   yourTurn: boolean;
   canRespond: boolean;
   legal: any[] | null;

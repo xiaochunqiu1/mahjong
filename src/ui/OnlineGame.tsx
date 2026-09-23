@@ -204,6 +204,12 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound, on
   const isHu = myTurn && phase === 'awaitDiscard' && canHu;
   const isMyDiscard = myTurn && phase === 'awaitDiscard';
   const seatIdx = (p: typeof topP) => p?.seat ?? -1;
+  // 响应窗口内其他玩家已喊出的胡/碰/杠（喊牌事前可见，2026-09-23）
+  const SHOUT_CN: Record<string, string> = { peng: '碰', gang: '杠', hu: '胡' };
+  const shoutOf = (p: typeof topP) => {
+    const t = p ? view.pendingResponses?.[p.seat] : null;
+    return t ? SHOUT_CN[t] : undefined;
+  };
   const myWind = windOfSeat(seat, view.dealer);
   const myScore = view.scores[seat] ?? 0;
 
@@ -284,6 +290,7 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound, on
         isDealer: seatIdx(topP) === view.dealer,
         active: view.current === seatIdx(topP),
         trusted: topP ? view.trusted?.[topP.seat] : false,
+        shout: shoutOf(topP),
       }}
       left={{
         seat: seatIdx(leftP),
@@ -299,6 +306,7 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound, on
         isDealer: seatIdx(leftP) === view.dealer,
         active: view.current === seatIdx(leftP),
         trusted: leftP ? view.trusted?.[leftP.seat] : false,
+        shout: shoutOf(leftP),
       }}
       right={{
         seat: seatIdx(rightP),
@@ -314,6 +322,7 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound, on
         isDealer: seatIdx(rightP) === view.dealer,
         active: view.current === seatIdx(rightP),
         trusted: rightP ? view.trusted?.[rightP.seat] : false,
+        shout: shoutOf(rightP),
       }}
       me={{
         seat: seat,

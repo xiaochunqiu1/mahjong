@@ -26,6 +26,7 @@ export interface SeatInfo {
   isDealer: boolean;
   active: boolean;         // 当前轮到此座位行动
   trusted?: boolean;       // 托管中（AI 代打）
+  shout?: string;          // 响应窗口内已喊出的高优先级动作（"碰"/"杠"/"胡"）——喊牌事前可见（2026-09-23）
 }
 
 export interface OGActions {
@@ -103,6 +104,7 @@ function SeatInfoBlock({ info, pos }: { info: SeatInfo; pos: 'top' | 'left' | 'r
     <div className={'seat seat-' + pos}>
       <div className="nm">
         {info.isDealer && <span className="tag dealer" style={{ marginRight: 4 }}>庄</span>}
+        {info.shout && <span className="shout">{info.shout}</span>}
         {info.name || '家'}
       </div>
       <div className="sc">{(info.score ?? 0) >= 0 ? '+' : ''}{info.score ?? 0}</div>

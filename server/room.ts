@@ -86,6 +86,7 @@ export interface RoomView {
   nextReady: number[];         // 已同意"下一局"的真人座位
   trusted: boolean[];          // 托管中的座位（AI 代打）
   lastDiscardSeat: number | null;  // 最近出牌人的座位（客户端高亮牌河最后一张；不依赖名字解析）
+  pendingResponses: (string | null)[] | null; // 响应窗口内各座位已喊出的胡/碰/杠（喊牌语义事前可见；非响应窗口为 null）
   botSeatLast: number;              // 上次响应的 bot 座位（响应窗口公平轮转，避免固定 seat 顺序造成某家永远优先）
   yourTurn: boolean;
   canRespond: boolean;          // 响应窗口内本人是否可响应（胡/碰/杠/吃/过）
@@ -240,8 +241,9 @@ export class RoomManager {
     const prevLogLen = room.state.log.length;
     applyAction(room.state, seat, action);
     // 真人动作也计时（与单机 controller 一致：有信息量的动作重置 AI 节流）——
-    // 否则真人出牌后 botTickAt 早已过期，响应窗口第一家 bot 会零延迟"秒响应"
-    if (action.type !== 'draw') room.botTickAt = Date.now();
+    // 但只有【出牌】重置：真人的吃/碰/胡/过等响应动作不续期——
+    // 否则真人越快点，bot 的高优先级表态越被压后（2026-09-23 用户反馈的时序颠倒根源之一）
+    if (action.type === 'discard') room.botTickAt = Date.now();
     // 只在阶段切换时重设倒计时（响应阶段每人提交不重置，否则 8s 窗口被不断后移）
     if (room.state.phase.t !== beforePhase) room.turnStartedAt = Date.now();
     // 只广播**公共动作**（出牌/碰/吃/杠/胡/宣告）——摸牌/杠补是各玩家私有手牌，不能广播
@@ -322,9 +324,11 @@ export class RoomManager {
           // 真人：已托管 → AI 代打(同 bot 逻辑,节流)；未托管超时(8s) → 自动托管 + 过
           if (isHuman) {
             if (room.trusted[seat]) {
-              if (Date.now() - room.botTickAt < this.botStepMs) break;
               let act: GameAction;
               try { act = this.botDecide(room, s, seat); } catch { continue; }
+              // 高优先级响应（胡/碰/杠）跳过节流立即表态（2026-09-23 用户反馈：优先级应体现在表态时序上）
+              const urgent = act.type === 'hu' || act.type === 'peng' || act.type === 'gang';
+              if (!urgent && Date.now() - room.botTickAt < this.botStepMs) break;
               const prevLen2 = s.log.length;
               const beforePhase = s.phase.t;
               applyAction(s, seat, act);
@@ -351,9 +355,12 @@ export class RoomManager {
             room.botTickAt = Date.now();
             break;
           }
-          if (Date.now() - room.botTickAt < this.botStepMs) break; // 节流
           let act: GameAction;
           try { act = this.botDecide(room, s, seat); } catch { continue; }
+          // 高优先级响应（胡/碰/杠）跳过节流立即表态：真人事前可见（喊牌语义，2026-09-23 用户反馈）。
+          // 低优先级（吃/过）保持 botStepMs 拟人节奏——真实牌桌：喊碰迅速，考虑吃才慢
+          const urgent = act.type === 'hu' || act.type === 'peng' || act.type === 'gang';
+          if (!urgent && Date.now() - room.botTickAt < this.botStepMs) break;
           const prevLen = s.log.length;
           const beforePhase = s.phase.t;
           applyAction(s, seat, act);
@@ -607,6 +614,7 @@ export class RoomManager {
       waitingNext: false,
       nextReady: room.nextReady ?? [],
       trusted: room.trusted ?? [false, false, false, false],
+      pendingResponses: null,
       yourTurn: false,
       canRespond: false,
       legal: null,
@@ -621,6 +629,15 @@ export class RoomManager {
     view.current = s.current;
     view.waitingNext = room.waitingNext;
     view.lastDiscardSeat = room.lastDiscardSeat;
+    // 响应窗口内已喊出的高优先级响应（胡/碰/杠）：喊牌语义，所有人事前可见——
+    // 真人点"吃"前就能看到"小美要碰"（2026-09-23 用户反馈）。吃/过不暴露（可能被顶掉，亮出来会误导）
+    view.pendingResponses = s.phase.t === 'awaitResponse'
+      ? s.responses.map((r, i) => {
+          if (i === seat || !r) return null;
+          const t = r.type;
+          return t === 'hu' || t === 'peng' || t === 'gang' ? t : null;
+        })
+      : null;
     view.yourTurn = seat >= 0 && s.current === seat;
     view.canRespond = seat >= 0 && s.phase.t === 'awaitResponse'
       && !!s.eligible[seat] && s.responses[seat] === null;

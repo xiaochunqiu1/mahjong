@@ -169,12 +169,14 @@ function driveAI(s: SoloSession): void {
     return;
   }
   if (ph.t === 'awaitResponse') {
-    if (!throttleOk) return;
     for (let seat = 0; seat < 4; seat++) {
       if (seat === s.humanSeat) continue;
       if (state.eligible[seat] && !state.responses[seat]) {
         // 单机版电脑 = 正常 AI：会胡、会宣告游金（真人长期胜率靠 aiLevel/greed 校准到 50%）
         const act = aiDecide(state, seat, mulberry32(s.seed + seat * 31 + state.log.length), s.aiLevel);
+        // 高优先级响应（胡/碰/杠）跳过节流立即表态——真人事前可见（2026-09-23 用户反馈，与好友房同步）
+        const urgent = act.type === 'hu' || act.type === 'peng' || act.type === 'gang';
+        if (!urgent && !throttleOk) return; // 低优先级（吃/过）保持拟人节奏
         apply(s, seat, act);
         return; // 每帧最多驱动一个 AI，等下次 tick
       }
@@ -192,7 +194,9 @@ function apply(s: SoloSession, seat: number, action: GameAction): void {
     console.warn('[solo] illegal action', seat, action, e);
     return;
   }
-  if (action.type !== 'draw') s.lastAIMoveAt = Date.now(); // 有信息量的动作计时
+  // 出牌总是重置 AI 节流（真人出牌后 bot 别秒响应；AI 自己的任何动作重置自身节奏）；
+  // 真人的吃/碰/胡/过不重置——不应给 AI 的高优先级表态续期（2026-09-23 用户反馈，与好友房同步）
+  if (action.type === 'discard' || seat !== s.humanSeat) s.lastAIMoveAt = Date.now();
   if (action.type === 'draw' && state.phase.t === 'awaitDiscard' && state.current === seat) {
     const p = state.players[seat]!;
     s.lastDrawn = p.hand[p.hand.length - 1] ?? null;

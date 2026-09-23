@@ -233,6 +233,13 @@ export function Game({ rounds: initialRounds, onExit }: { rounds: number; onExit
   const p1 = state.players[1]!; // 下家（屏幕右）
   const p2 = state.players[2]!; // 对家（屏幕顶）
   const p3 = state.players[3]!; // 上家（屏幕左）
+  // 响应窗口内电脑已喊出的胡/碰/杠（喊牌事前可见，2026-09-23，与好友房同步）
+  const SHOUT_CN: Record<string, string> = { peng: '碰', gang: '杠', hu: '胡' };
+  const shoutOf = (seat: number) => {
+    if (state.phase.t !== 'awaitResponse') return undefined;
+    const r = state.responses[seat];
+    return r && SHOUT_CN[r.type] ? SHOUT_CN[r.type] : undefined;
+  };
   const humanActs = s.humanActions;
   const myDrawTurn = state.phase.t === 'awaitDraw' && state.current === 0;
   const myDiscardTurn = state.phase.t === 'awaitDiscard' && state.current === 0;
@@ -293,6 +300,7 @@ export function Game({ rounds: initialRounds, onExit }: { rounds: number; onExit
         melds: p2.melds.map((m) => ({ kind: m.kind, tiles: m.tiles })),
         flowers: p2.flowers, discards: p2.discards,
         isDealer: state.dealer === 2, active: state.current === 2,
+        shout: shoutOf(2),
       }}
       left={{
         name: NAMES[3], seat: 3, isBot: true,
@@ -301,6 +309,7 @@ export function Game({ rounds: initialRounds, onExit }: { rounds: number; onExit
         melds: p3.melds.map((m) => ({ kind: m.kind, tiles: m.tiles })),
         flowers: p3.flowers, discards: p3.discards,
         isDealer: state.dealer === 3, active: state.current === 3,
+        shout: shoutOf(3),
       }}
       right={{
         name: NAMES[1], seat: 1, isBot: true,
@@ -309,6 +318,7 @@ export function Game({ rounds: initialRounds, onExit }: { rounds: number; onExit
         melds: p1.melds.map((m) => ({ kind: m.kind, tiles: m.tiles })),
         flowers: p1.flowers, discards: p1.discards,
         isDealer: state.dealer === 1, active: state.current === 1,
+        shout: shoutOf(1),
       }}
       me={{
         seat: 0, name: '我', isBot: false,
