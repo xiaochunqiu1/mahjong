@@ -359,9 +359,8 @@ export function OGStage(props: OGStageProps & { children?: ReactNode }): ReactNo
                 const discardKind = actions.chiPicker!.tiles[0]!;
                 return (
                   <button key={i} className="chi-picker-opt" onClick={() => {
-                    // 同步喊出吃入的顺子（保持手势上下文内播报）
-                    for (const k of useKinds) speakTile(k);
-                    speakTile(discardKind);
+                    // 点击只做选择：吃生效后统一喊一声"吃"（2026-09-23 用户反馈——
+                    // 原来这里逐张朗读牌名，与生效时的"吃"喊声重叠成杂音）
                     actions.chiPicker!.onPick(useKinds);
                     setChiPickerOpen(false);
                   }}>

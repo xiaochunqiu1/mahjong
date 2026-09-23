@@ -257,7 +257,7 @@ export class RoomManager {
     }
     room.version++;
     await this.storage.save(room);
-    // 驱动 bot（含响应窗口内未提交的 bot）
+    // 驱动 bot（含响应窗口内未提交的 bot）——bot 按固定时刻表表态，与真人动作无关
     await this.tickBots(room);
     return this.buildView(room, token);
   }
@@ -324,11 +324,11 @@ export class RoomManager {
           // 真人：已托管 → AI 代打(同 bot 逻辑,节流)；未托管超时(8s) → 自动托管 + 过
           if (isHuman) {
             if (room.trusted[seat]) {
+              // 响应节奏（2026-09-23 用户终版语义）：碰/杠/胡与吃一致（botStepMs 拟人间隔），
+              // 系统自主判断、按固定时刻表执行，与真人是否表态完全无关
+              if (Date.now() - room.botTickAt < this.botStepMs) break;
               let act: GameAction;
               try { act = this.botDecide(room, s, seat); } catch { continue; }
-              // 高优先级响应（胡/碰/杠）跳过节流立即表态（2026-09-23 用户反馈：优先级应体现在表态时序上）
-              const urgent = act.type === 'hu' || act.type === 'peng' || act.type === 'gang';
-              if (!urgent && Date.now() - room.botTickAt < this.botStepMs) break;
               const prevLen2 = s.log.length;
               const beforePhase = s.phase.t;
               applyAction(s, seat, act);
@@ -355,12 +355,11 @@ export class RoomManager {
             room.botTickAt = Date.now();
             break;
           }
+          // 响应节奏（2026-09-23 用户终版语义）：碰/杠/胡与吃一致（botStepMs 拟人间隔），
+          // 系统自主判断、按固定时刻表执行，与真人是否表态完全无关（真人动作不改变 bot 的表态时刻）
+          if (Date.now() - room.botTickAt < this.botStepMs) break;
           let act: GameAction;
           try { act = this.botDecide(room, s, seat); } catch { continue; }
-          // 高优先级响应（胡/碰/杠）跳过节流立即表态：真人事前可见（喊牌语义，2026-09-23 用户反馈）。
-          // 低优先级（吃/过）保持 botStepMs 拟人节奏——真实牌桌：喊碰迅速，考虑吃才慢
-          const urgent = act.type === 'hu' || act.type === 'peng' || act.type === 'gang';
-          if (!urgent && Date.now() - room.botTickAt < this.botStepMs) break;
           const prevLen = s.log.length;
           const beforePhase = s.phase.t;
           applyAction(s, seat, act);

@@ -169,14 +169,14 @@ function driveAI(s: SoloSession): void {
     return;
   }
   if (ph.t === 'awaitResponse') {
+    // 响应节奏（2026-09-23 用户反馈二次修正）：碰/杠/胡与吃一致（aiDelayMs 拟人间隔），
+    // 不按动作类型豁免节流——真人已表态时由 humanAct 的 forceAIRespond 立即清算
+    if (!throttleOk) return;
     for (let seat = 0; seat < 4; seat++) {
       if (seat === s.humanSeat) continue;
       if (state.eligible[seat] && !state.responses[seat]) {
         // 单机版电脑 = 正常 AI：会胡、会宣告游金（真人长期胜率靠 aiLevel/greed 校准到 50%）
         const act = aiDecide(state, seat, mulberry32(s.seed + seat * 31 + state.log.length), s.aiLevel);
-        // 高优先级响应（胡/碰/杠）跳过节流立即表态——真人事前可见（2026-09-23 用户反馈，与好友房同步）
-        const urgent = act.type === 'hu' || act.type === 'peng' || act.type === 'gang';
-        if (!urgent && !throttleOk) return; // 低优先级（吃/过）保持拟人节奏
         apply(s, seat, act);
         return; // 每帧最多驱动一个 AI，等下次 tick
       }
