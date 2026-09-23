@@ -51,6 +51,7 @@ export interface RoomState {
   waitingNext: boolean;       // 本局结束等待所有在场真人点"下一局"（避免自动开新局吞掉结算页）
   nextReady: number[];        // 已同意"下一局"的真人座位（全员同意才开新局；退出者自动不计）
   trusted: boolean[];         // 真人托管标记：超时自动托管 → 之后轮到由 AI 代打；真人可点"取消托管"
+  lastDrawnT?: Record<number, number>; // 托管代打刚摸的牌（seat → tile id）：托管出牌"进什么打什么"（新字段 optional 兼容旧数据）
   huTally?: { human: number; bot: number }; // 本房间胡牌计数（跨局累计，流局不计；机器配额 = 真人胡牌数 × 1/4，长期机器占胡牌总数 20%；新字段 optional 兼容旧房间数据）
 }
 
@@ -328,7 +329,7 @@ export class RoomManager {
               // 系统自主判断、按固定时刻表执行，与真人是否表态完全无关
               if (Date.now() - room.botTickAt < this.botStepMs) break;
               let act: GameAction;
-              try { act = this.botDecide(room, s, seat); } catch { continue; }
+              try { act = this.trustAct(room, s, seat); } catch { continue; } // 托管代打：不碰吃杠胡，一律过
               const prevLen2 = s.log.length;
               const beforePhase = s.phase.t;
               applyAction(s, seat, act);
@@ -385,10 +386,16 @@ export class RoomManager {
           if (room.trusted[cur]) {
             if (s.phase.t === 'awaitDiscard' && Date.now() - room.botTickAt < this.botStepMs) break;
             let act: GameAction;
-            try { act = this.botDecide(room, s, cur); } catch { break; }
+            try { act = this.trustAct(room, s, cur); } catch { break; } // 托管代打：不碰吃杠胡，进什么打什么/随机
             const prevLen = s.log.length;
             const beforePhase = s.phase.t;
             applyAction(s, cur, act);
+            if (act.type === 'draw') {
+              // 记录托管代打刚摸的牌（引擎 draw push 末尾）——出牌"进什么打什么"
+              const hand = s.players[cur]!.hand;
+              room.lastDrawnT = room.lastDrawnT ?? {};
+              room.lastDrawnT[cur] = hand[hand.length - 1]!;
+            }
             if (s.phase.t !== beforePhase) room.turnStartedAt = Date.now();
             const newLog = s.log.slice(prevLen);
             const publicLog = newLog.find((l) => /^(出牌|碰|吃|明杠|暗杠|加杠|补花|单游宣告|双游宣告|胡牌|流局|无人响应):/.test(l));
@@ -404,7 +411,7 @@ export class RoomManager {
             room.trusted[cur] = true;
             room.lastEvent = `${seatP!.name} 超时托管`;
             let act: GameAction;
-            try { act = this.humanTimeoutAct(s, cur); } catch { break; }
+            try { act = this.trustAct(room, s, cur); } catch { break; } // 超时托管：代打同样不碰吃杠胡、进什么打什么/随机
             const prevLen = s.log.length;
             const beforePhase = s.phase.t;
             applyAction(s, cur, act);
@@ -454,14 +461,6 @@ export class RoomManager {
     }
   }
 
-  /** 真人主回合超时兜底：优先打出刚摸的牌，否则打第一张可出的牌 */
-  private humanTimeoutAct(state: GameState, seat: number): GameAction {
-    const acts = legalActions(state, seat);
-    const plain = acts.find((a) => a.type === 'discard' && !a.declare);
-    if (plain) return plain;
-    return acts[0]!;
-  }
-
   /** 当前房间真人数（真人中途退出即换 bot 托管，此计数动态准确） */
   private humanCount(room: RoomState): number {
     return room.players.filter((x) => x && !x.isBot).length;
@@ -479,6 +478,29 @@ export class RoomManager {
     const t = room.huTally ?? { human: 0, bot: 0 };
     if (t.bot * 4 >= t.human + 3) return null; // 配额用尽（bot×4 < human+3 才允许，长期 bot ≈ human/4 → 机器占胡牌总数 20%）
     return acts.find((a) => a.type === 'hu') ?? null;
+  }
+
+  /**
+   * 托管代打决策（2026-09-23 用户规则）：
+   * - 不碰不吃不杠不胡（响应一律过）
+   * - 出牌"进什么牌打什么牌"：刚摸的直接打出；无刚摸牌（接管/超时接手）则随机一张普通牌（不宣告游金）
+   */
+  private trustAct(room: RoomState, state: GameState, seat: number): GameAction {
+    const acts = legalActions(state, seat);
+    if (acts.length === 0) throw new Error('no legal');
+    const ph = state.phase;
+    if (ph.t === 'awaitDraw') return { type: 'draw' };
+    if (ph.t === 'awaitResponse') {
+      const pass = acts.find((a) => a.type === 'pass');
+      return pass ?? { type: 'pass' };
+    }
+    const drawn = room.lastDrawnT?.[seat];
+    if (drawn != null && state.players[seat]!.hand.includes(drawn)) {
+      return { type: 'discard', tile: drawn };
+    }
+    const discards = acts.filter((a) => a.type === 'discard' && !a.declare);
+    if (discards.length === 0) return acts[0]!;
+    return discards[Math.floor(rand() * discards.length)]!;
   }
 
   /** 陪打 bot 决策：可碰/吃/杠/出牌正常强度；胡牌走 botTryWin 配额（真人数 ≥3 或配额用尽时永不胡） */
@@ -578,6 +600,7 @@ export class RoomManager {
     if (p.isBot) throw new RoomError('电脑无需取消托管');
     if (room.trusted[p.seat]) {
       room.trusted[p.seat] = false;
+      if (room.lastDrawnT) delete room.lastDrawnT[p.seat]; // 清除代打摸牌记录（之后由真人自己决策）
       room.version++;
       room.lastEvent = `${p.name} 取消托管`;
       await this.storage.save(room);

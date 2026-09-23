@@ -59,6 +59,12 @@ export function OnlineGame({ view, session, submitAction, onLeave, nextRound, on
   const [confetti, setConfetti] = useState<{ id: number; bursts: { id: string; x: number; y: number; delay: number; pieces: { angle: number; dist: number; color: string; size: number }[] }[] } | null>(null);
   const [settlePanelOpen, setSettlePanelOpen] = useState(false);
   const [localUntrusted, setLocalUntrusted] = useState(false);
+  // 每次进入托管（false→true）时清除上一次的"取消托管"标记——
+  // 修复：点过一次取消后标志永久残留，导致之后的托管（含响应窗口托管）不再显示取消按钮（2026-09-23 用户反馈）
+  const trustedNow = view.trusted?.[seat] ?? false;
+  useEffect(() => {
+    if (trustedNow) setLocalUntrusted(false);
+  }, [trustedNow]);
   const [voiceMicOn, setVoiceMicOnState] = useState(isMicOn);    // 来自全局 store（大厅/对局共享）
   const [voiceSpeakerOn, setVoiceSpeakerOnState] = useState(isSpeakerOn);
   useEffect(() => onVoiceChange(() => { setVoiceMicOnState(isMicOn()); setVoiceSpeakerOnState(isSpeakerOn()); }), []);
