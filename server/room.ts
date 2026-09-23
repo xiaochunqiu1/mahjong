@@ -4,7 +4,7 @@
  *
  * 规则约定（与 docs/rules.md 一致）：
  * - 房间码 4 位数字
- * - 1-4 真人 + 电脑补齐；陪打电脑永不胡牌（只作规则约束，不上视觉）
+ * - 1-4 真人 + 电脑补齐；机器胡牌规则（2026-09-23 用户改）：真人数 ≤2 → 机器整体 20% 概率胡（同一胡牌时机全机器合计只掷一次骰）；真人数 ≥3 → 机器永不胡
  * - 服务端持有完整 GameState，客户端只能拿到自己的手牌视图（PlayerView 裁剪）
  * - 每个玩家有 token，所有请求校验 token 归属
  * - 轮询同步：客户端 1s 拉一次 poll，比对 version 判断是否变化
@@ -16,8 +16,9 @@ import {
 } from '../src/engine/index.js';
 import { aiDecide } from '../src/game/ai.js';
 
-export const BOT_AI_LEVEL = 0.35; // 陪打电脑水平：明显弱于真人（不胡牌、少碰杠）
+export const BOT_AI_LEVEL = 0.35; // 陪打电脑水平：明显弱于真人（少碰杠；胡牌倾向由 BOT_WIN_RATE 单独控制）
 export const BOT_GREED = 0.05;
+export const BOT_WIN_RATE = 0.2; // 机器阵营整体胡牌概率（2026-09-23 用户规则）：真人数 ≤2 的房间生效；每个胡牌时机全机器合计只掷一次骰，不随机器数放大
 export const BOT_STEP_MS = 2200; // 陪打电脑动作节流：与单机 aiDelayMs 一致，保证三家电脑节奏均匀、不秒响应（真人动作也计时，见 submitAction）
 export const RESPONSE_MS = 8_000; // 响应窗口（与单机 controller 对齐）
 export const TURN_MS = 30_000;    // 主回合（出牌/摸牌）
@@ -51,6 +52,7 @@ export interface RoomState {
   waitingNext: boolean;       // 本局结束等待所有在场真人点"下一局"（避免自动开新局吞掉结算页）
   nextReady: number[];        // 已同意"下一局"的真人座位（全员同意才开新局；退出者自动不计）
   trusted: boolean[];         // 真人托管标记：超时自动托管 → 之后轮到由 AI 代打；真人可点"取消托管"
+  botHuGrant?: { key: string; allow: boolean } | null; // 机器方点炮胡判定（当前响应窗口的掷骰结果；窗口跨多次 poll，须存 RoomState 保持一致；新字段 optional 兼容旧房间数据）
 }
 
 export interface RoomStorage {
@@ -323,7 +325,7 @@ export class RoomManager {
             if (room.trusted[seat]) {
               if (Date.now() - room.botTickAt < this.botStepMs) break;
               let act: GameAction;
-              try { act = this.botDecide(s, seat); } catch { continue; }
+              try { act = this.botDecide(room, s, seat); } catch { continue; }
               const prevLen2 = s.log.length;
               const beforePhase = s.phase.t;
               applyAction(s, seat, act);
@@ -352,7 +354,7 @@ export class RoomManager {
           }
           if (Date.now() - room.botTickAt < this.botStepMs) break; // 节流
           let act: GameAction;
-          try { act = this.botDecide(s, seat); } catch { continue; }
+          try { act = this.botDecide(room, s, seat); } catch { continue; }
           const prevLen = s.log.length;
           const beforePhase = s.phase.t;
           applyAction(s, seat, act);
@@ -378,7 +380,7 @@ export class RoomManager {
           if (room.trusted[cur]) {
             if (s.phase.t === 'awaitDiscard' && Date.now() - room.botTickAt < this.botStepMs) break;
             let act: GameAction;
-            try { act = this.botDecide(s, cur); } catch { break; }
+            try { act = this.botDecide(room, s, cur); } catch { break; }
             const prevLen = s.log.length;
             const beforePhase = s.phase.t;
             applyAction(s, cur, act);
@@ -418,7 +420,7 @@ export class RoomManager {
           if (s.phase.t === 'awaitDiscard' && Date.now() - room.botTickAt < this.botStepMs) break;
           let act: GameAction;
           try {
-            act = this.botDecide(s, cur);
+            act = this.botDecide(room, s, cur);
           } catch {
             break; // 无合法动作，等下一步
           }
@@ -455,13 +457,44 @@ export class RoomManager {
     return acts[0]!;
   }
 
-  /** 陪打 bot 决策：可碰/吃/杠/出牌，永不胡（"陪打电脑永不胡牌"用户红线） */
-  private botDecide(state: GameState, seat: number): GameAction {
+  /** 当前房间真人数（真人中途退出即换 bot 托管，此计数动态准确） */
+  private humanCount(room: RoomState): number {
+    return room.players.filter((x) => x && !x.isBot).length;
+  }
+
+  /**
+   * 机器方胡牌判定（2026-09-23 用户规则）：真人数 ≤2 → 机器整体 20% 概率胡；真人数 ≥3 → 永不胡。
+   * "整体 20%"的实现——同一个胡牌时机全机器只掷一次骰，不随机器数放大：
+   * - 点炮响应窗口：整窗共用一次判定（结果存 RoomState.botHuGrant，跨 poll 一致；
+   *   命中则首家可胡机器宣告，胡>碰>吃 窗口立即结束，其余机器无需再响应）
+   * - 自摸：机器自己回合独立掷一次
+   */
+  private botTryWin(room: RoomState, state: GameState, acts: GameAction[]): GameAction | null {
+    if (this.humanCount(room) >= 3) return null;
+    const hu = acts.find((a) => a.type === 'hu');
+    if (!hu) return null;
+    const ph = state.phase;
+    if (ph.t === 'awaitResponse') {
+      // 窗口 key：窗口期间 log.length 稳定（响应只收集不落 log，裁决时才写），可唯一定位本窗口
+      const key = `r${state.log.length}:${ph.from}:${ph.discard}`;
+      if (!room.botHuGrant || room.botHuGrant.key !== key) {
+        room.botHuGrant = { key, allow: rand() < BOT_WIN_RATE };
+      }
+      return room.botHuGrant.allow ? hu : null;
+    }
+    return rand() < BOT_WIN_RATE ? hu : null;
+  }
+
+  /** 陪打 bot 决策：可碰/吃/杠/出牌；胡牌走 botTryWin 的阵营概率判定（真人数 ≥3 时永不胡） */
+  private botDecide(room: RoomState, state: GameState, seat: number): GameAction {
     const acts = legalActions(state, seat);
     if (acts.length === 0) throw new Error('no legal');
     const ph = state.phase;
     if (ph.t === 'awaitDraw') return { type: 'draw' };
-    // 响应窗口：用 AI 评估碰/吃/杠（向听放宽 +2），但永不胡
+    // 胡牌判定：命中则直接宣告胡（点炮胡/自摸通用）；未命中或 ≥3 真人 → 继续按不胡逻辑走
+    const win = this.botTryWin(room, state, acts);
+    if (win) return win;
+    // 响应窗口：用 AI 评估碰/吃/杠（向听放宽 +2）
     if (ph.t === 'awaitResponse') {
       const nonHu = acts.filter((a) => a.type !== 'hu');
       if (nonHu.length === 0) return { type: 'pass' };

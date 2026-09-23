@@ -60,6 +60,13 @@ async function main() {
   while (view.roomPhase === 'playing' && steps < maxSteps) {
     steps++;
     view = (await call('poll', { roomId, token: seat === 0 ? hostToken : p2Token })).view;
+    // 本局结算 → 等全员点"下一局"（2026-08-21 投票制）：两边真人轮流各点一次
+    // （整场打完 roomPhase='over' 但 waitingNext 仍为 true，此时不再点 → 循环自然退出）
+    if (view.waitingNext && view.roomPhase === 'playing') {
+      view = (await call('nextRound', { roomId, token: seat === 0 ? hostToken : p2Token })).view;
+      seat = view.seat === 0 ? 1 : 0;
+      continue;
+    }
     // 当前轮到我（出牌/摸牌）或可响应 → 提交动作
     if ((view.yourTurn || view.canRespond) && view.legal && view.legal.length > 0) {
       const acts = view.legal;
