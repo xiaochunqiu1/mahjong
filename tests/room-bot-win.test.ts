@@ -1,26 +1,25 @@
 /**
- * 好友房机器胡牌规则（2026-09-23 用户改）：
- * - 真人数 ≤2 → 机器阵营整体 20% 概率胡（每个胡牌时机全机器合计只掷一次骰，不随机器数放大）
- * - 真人数 ≥3 → 机器永不胡
+ * 好友房机器胡牌配额制（2026-09-23 用户规则终版，仅好友房——单机房设置不变）：
+ * 用户原话："胡 1000 次，真人胡的总和 800 次左右，机器胡的总和 200 次左右"
+ * → 机器胡牌总数 ≤ 真人胡牌总数 × 1/4（机器占胡牌总数 20%）
  *
- * 核心语义验证点：
- * 1. 3 真人：botTryWin 恒 null
- * 2. 同一点炮响应窗口：判定结果跨调用一致（存 RoomState，跨 poll 不重复掷骰 → 概率不被机器数放大）
- * 3. 新窗口重新掷骰；自摸时机独立掷骰
- * 4. 统计上 allow 率 ≈ 20%（二项分布 B(1000, 0.2)，±4σ 宽松断言防 flaky）
- * 5. RoomState JSON 序列化往返后判定结果保留（模拟云函数跨 poll 存取）
+ * 实现语义验证点：
+ * 1. 3 真人房：机器永不胡
+ * 2. ≤2 真人房：配额内（bot×4 < human+3）有可胡动作必返回胡（点炮胡/自摸通用，不掷骰）
+ * 3. 配额用尽（bot×4 ≥ human+3）→ 永不胡，直到真人再胡后解锁
+ * 4. 结算计数：真人胡 +human、机器胡 +bot、流局不计（huTally 存 RoomState 跨局累计）
+ * 5. 中途退出换 bot：按胡牌者当前座位属性归属
+ * 6. 长期模拟：真人持续胡牌，机器配额循环解锁 → 机器/真人比例收敛 1:4（20%）
  */
 import { describe, it, expect } from 'vitest';
 import { RoomManager, type RoomState, type SeatPlayer } from '../server/room.js';
-import { createRound, type GameAction, type GameState } from '../src/engine/index.js';
-
-const CFG = { rounds: 9999, liujuFloor: 16 };
+import { createMatch, type GameAction, type RoundResult } from '../src/engine/index.js';
 
 function mkPlayer(seat: number, isBot: boolean): SeatPlayer {
   return { seat, name: `p${seat}`, token: `t${seat}`, online: true, ready: true, isBot };
 }
 
-function mkRoom(seats: boolean[]): RoomState {
+function mkRoom(seats: boolean[], huTally?: { human: number; bot: number }): RoomState {
   return {
     id: '1000', createdAt: 0, phase: 'playing', rounds: 9999,
     players: seats.map((b, i) => mkPlayer(i, b)),
@@ -28,104 +27,91 @@ function mkRoom(seats: boolean[]): RoomState {
     match: null, state: null, roundNo: 1,
     botTickAt: 0, turnStartedAt: 0,
     waitingNext: false, nextReady: [], trusted: [false, false, false, false],
+    huTally,
   };
-}
-
-function mkState(): GameState {
-  const s = createRound(42, 0, CFG);
-  s.phase = { t: 'awaitResponse', discard: 5, from: 1 }; // 有人打出 5，进入响应窗口
-  return s;
 }
 
 const HU: GameAction = { type: 'hu' } as GameAction;
 const ACTS: GameAction[] = [{ type: 'pass' }, HU];
 
-type BotTryWin = (room: RoomState, state: GameState, acts: GameAction[]) => GameAction | null;
-const tryWin = (mgr: RoomManager) => (mgr as unknown as { botTryWin: BotTryWin }).botTryWin.bind(mgr);
+type BotTryWin = (room: RoomState, acts: GameAction[]) => GameAction | null;
+type Settle = (room: RoomState) => void;
+const mgrHack = (mgr: RoomManager) => ({
+  win: (mgr as unknown as { botTryWin: BotTryWin }).botTryWin.bind(mgr),
+  settle: (mgr as unknown as { settleRound: Settle }).settleRound.bind(mgr),
+});
 
-describe('好友房机器胡牌规则（2026-09-23：≤2 真人整体 20%，≥3 真人永不胡）', () => {
+/** 构造一局的终态 RoomState + 胡牌结算结果（绕开引擎直接测 settleRound 的计数逻辑） */
+function settleAs(room: RoomState, winnerSeat: number, liuju: boolean): void {
+  const res = { winner: winnerSeat, liuju, score: { winType: 'zimo', delta: [0, 0, 0, 0] } } as unknown as RoundResult;
+  room.state = { phase: { t: 'over', result: res } } as RoomState['state'];
+  room.match = createMatch(1, 9999); // 真实 MatchState（advanceMatch 需要 history/scores/dealer/config）
+}
+
+describe('好友房机器胡牌配额制（2026-09-23：机器胡牌总数 ≤ 真人 × 1/4，占胡牌总数 20%）', () => {
   const mem = { rooms: new Map<string, RoomState>(), async load(id: string) { return this.rooms.get(id) ?? null; }, async save(r: RoomState) { this.rooms.set(r.id, r); } };
-  const mgr = new RoomManager(mem as never);
-  const win = tryWin(mgr);
+  const { win, settle } = mgrHack(new RoomManager(mem as never));
 
-  it('3 真人房：机器永不胡（点炮窗口与自摸时机都是 null）', () => {
-    const room = mkRoom([false, false, false, true]); // 3 真人 + 1 bot
-    const s = mkState();
-    expect(win(room, s, ACTS)).toBeNull();
-    expect(win(room, s, ACTS)).toBeNull();
-    s.phase = { t: 'awaitDiscard' }; // 自摸时机
-    for (let i = 0; i < 50; i++) expect(win(room, s, ACTS)).toBeNull();
+  it('3 真人房：机器永不胡（任何配额状态下）', () => {
+    const room = mkRoom([false, false, false, true], { human: 100, bot: 0 }); // 配额充裕也永不胡
+    expect(win(room, ACTS)).toBeNull();
   });
 
-  it('2 真人房：同一响应窗口判定跨调用一致（结果存 RoomState，不重复掷骰）', () => {
-    const room = mkRoom([false, false, true, true]); // 2 真人 + 2 bot
-    const s = mkState();
-    const first = win(room, s, ACTS);
-    expect(room.botHuGrant).toBeTruthy(); // 判定已存入 RoomState
-    // 同窗口反复调用（模拟窗口内多个 bot、跨多次 poll 读取）
-    for (let i = 0; i < 10; i++) {
-      expect((win(room, s, ACTS) !== null)).toBe(first !== null);
+  it('≤2 真人房：配额内有可胡动作必返回胡（不掷骰，确定性）', () => {
+    expect(win(mkRoom([false, true, true, true]), ACTS)).toBe(HU);       // 1 真人，human=0 bot=0
+    expect(win(mkRoom([false, false, true, true], { human: 10, bot: 2 }), ACTS)).toBe(HU); // 2×4=8 < 13 ✓
+    // 无可胡动作 → null
+    expect(win(mkRoom([false, true, true, true]), [{ type: 'pass' }])).toBeNull();
+  });
+
+  it('配额用尽（bot×4 ≥ human+3）→ 永不胡，真人再胡后解锁', () => {
+    const room = mkRoom([false, true, true, true], { human: 0, bot: 1 });   // 4 ≥ 3 → 锁
+    expect(win(room, ACTS)).toBeNull();
+    room.huTally = { human: 1, bot: 1 };                                    // 4 ≥ 4 → 仍锁
+    expect(win(room, ACTS)).toBeNull();
+    room.huTally = { human: 2, bot: 1 };                                    // 4 < 5 ✓ 解锁
+    expect(win(room, ACTS)).toBe(HU);
+    room.huTally = { human: 10, bot: 3 };                                   // 12 < 13 ✓
+    expect(win(room, ACTS)).toBe(HU);
+    room.huTally = { human: 10, bot: 4 };                                   // 16 ≥ 13 → 锁
+    expect(win(room, ACTS)).toBeNull();
+  });
+
+  it('结算计数：真人胡 +human / 机器胡 +bot / 流局不计', () => {
+    const room = mkRoom([false, true, true, true]);
+    settleAs(room, 0, false); settle(room);          // 真人（座位0）胡
+    expect(room.huTally).toEqual({ human: 1, bot: 0 });
+    settleAs(room, 1, false); settle(room);          // 机器（座位1）胡
+    expect(room.huTally).toEqual({ human: 1, bot: 1 });
+    settleAs(room, -1, true); settle(room);          // 流局
+    expect(room.huTally).toEqual({ human: 1, bot: 1 });
+    settleAs(room, 0, false); settle(room);          // 真人再胡
+    expect(room.huTally).toEqual({ human: 2, bot: 1 });
+  });
+
+  it('中途退出换 bot：胡牌按当前座位属性归属', () => {
+    const room = mkRoom([false, true, true, true]);
+    room.players[0] = mkPlayer(0, true); // 真人 0 退出 → bot 托管
+    settleAs(room, 0, false); settle(room);
+    expect(room.huTally).toEqual({ human: 0, bot: 1 });
+  });
+
+  it('长期模拟：真人持续胡牌，机器配额循环 → 机器占胡牌总数收敛 20%', () => {
+    const room = mkRoom([false, true, true, true]);
+    let human = 0, bot = 0;
+    for (let i = 0; i < 200; i++) {
+      room.huTally = { human, bot };
+      settleAs(room, 0, false); settle(room);          // 真人胡一局
+      human = room.huTally!.human;
+      if (win(room, ACTS)) {                            // 配额允许 → 机器胡一局
+        settleAs(room, 1, false); settle(room);
+        bot = room.huTally!.bot;
+      }
     }
-    // JSON 序列化往返（模拟云函数存取后判定保留）
-    const persisted: RoomState = JSON.parse(JSON.stringify(room));
-    expect((win(persisted, s, ACTS) !== null)).toBe(first !== null);
-  });
-
-  it('2 真人房：新响应窗口重新掷骰（log 增长 → key 变化）', () => {
-    const room = mkRoom([false, false, true, true]);
-    const s = mkState();
-    win(room, s, ACTS);
-    const grant1 = room.botHuGrant!;
-    s.log.push('出牌:1:7'); // 下一窗口（log.length 变化）
-    s.phase = { t: 'awaitResponse', discard: 7, from: 1 };
-    win(room, s, ACTS);
-    const grant2 = room.botHuGrant!;
-    expect(grant2.key).not.toBe(grant1.key); // 新窗口新判定
-  });
-
-  it('2 真人房：点炮窗口 allow 率 ≈ 20%（1000 个独立窗口统计）', () => {
-    const room = mkRoom([false, false, true, true]);
-    const s = mkState();
-    let allowed = 0;
-    for (let i = 0; i < 1000; i++) {
-      s.log.push(`x${i}`); // log 持续增长 → 每次窗口 key 都不同 → 独立掷骰
-      if (win(room, s, ACTS)) allowed++;
-    }
-    // B(1000, 0.2)：μ=200，σ≈12.6 → ±4σ 区间，稳定不 flaky
-    expect(allowed).toBeGreaterThanOrEqual(150);
-    expect(allowed).toBeLessThanOrEqual(250);
-  });
-
-  it('2 真人房：自摸时机独立掷骰，allow 率 ≈ 20%', () => {
-    const room = mkRoom([false, false, true, true]);
-    const s = mkState();
-    s.phase = { t: 'awaitDiscard' }; // 非响应窗口 → 自摸路径独立掷骰
-    let allowed = 0;
-    for (let i = 0; i < 1000; i++) {
-      if (win(room, s, ACTS)) allowed++;
-    }
-    expect(allowed).toBeGreaterThanOrEqual(150);
-    expect(allowed).toBeLessThanOrEqual(250);
-  });
-
-  it('1 真人房（3 bot）与 2 真人房（2 bot）：同为阵营 20%，概率不随机器数放大', () => {
-    // 语义由"每窗口只掷一次"保证：同窗口内 3 个 bot 调用都读同一个 botHuGrant
-    const room = mkRoom([false, true, true, true]); // 1 真人 + 3 bot
-    const s = mkState();
-    const r1 = win(room, s, ACTS);
-    const r2 = win(room, s, ACTS);
-    const r3 = win(room, s, ACTS);
-    expect((r1 !== null) === (r2 !== null) && (r2 !== null) === (r3 !== null)).toBe(true);
-  });
-
-  it('真人中途退出（座位换 bot）后：真人数下降 → 机器从永不胡变为 20% 可胡', () => {
-    const room = mkRoom([false, false, false, true]); // 3 真人
-    const s = mkState();
-    expect(win(room, s, ACTS)).toBeNull();
-    room.players[2] = mkPlayer(2, true); // 座位 2 真人退出 → bot 托管
-    expect(room.players.filter((x) => x && !x.isBot).length).toBe(2);
-    // 现在允许掷骰（可能 null，但 botHuGrant 必须被写入 —— 证明判定路径已打开）
-    win(room, s, ACTS);
-    expect(room.botHuGrant).toBeTruthy();
+    const share = bot / (bot + human);
+    // 长期 bot ≤ (human+3)/4 → 占比趋近 20%
+    expect(bot).toBeLessThanOrEqual(Math.floor((human + 3) / 4) + 1);
+    expect(share).toBeGreaterThan(0.18);
+    expect(share).toBeLessThanOrEqual(0.21);
   });
 });

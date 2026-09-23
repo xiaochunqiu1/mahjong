@@ -4,7 +4,7 @@
  *
  * 规则约定（与 docs/rules.md 一致）：
  * - 房间码 4 位数字
- * - 1-4 真人 + 电脑补齐；机器胡牌规则（2026-09-23 用户改）：真人数 ≤2 → 机器整体 20% 概率胡（同一胡牌时机全机器合计只掷一次骰）；真人数 ≥3 → 机器永不胡
+ * - 1-4 真人 + 电脑补齐；机器胡牌规则（2026-09-23 用户改·配额制）：真人数 ≤2 → 机器胡牌总数 ≤ 真人胡牌总数的 1/4（即胡牌里机器占两成、真人占八成），配额内逢胡必胡、配额外永不胡；真人数 ≥3 → 机器永不胡。机器吃碰杠不设限（与真人同强度 0.9）
  * - 服务端持有完整 GameState，客户端只能拿到自己的手牌视图（PlayerView 裁剪）
  * - 每个玩家有 token，所有请求校验 token 归属
  * - 轮询同步：客户端 1s 拉一次 poll，比对 version 判断是否变化
@@ -16,9 +16,8 @@ import {
 } from '../src/engine/index.js';
 import { aiDecide } from '../src/game/ai.js';
 
-export const BOT_AI_LEVEL = 0.35; // 陪打电脑水平：明显弱于真人（少碰杠；胡牌倾向由 BOT_WIN_RATE 单独控制）
+export const BOT_AI_LEVEL = 0.9; // 陪打电脑强度：与真人差不多（2026-09-23 用户明确吃碰杠不设限）；胡牌不靠强度控制，由 huTally 配额限制
 export const BOT_GREED = 0.05;
-export const BOT_WIN_RATE = 0.2; // 机器阵营整体胡牌概率（2026-09-23 用户规则）：真人数 ≤2 的房间生效；每个胡牌时机全机器合计只掷一次骰，不随机器数放大
 export const BOT_STEP_MS = 2200; // 陪打电脑动作节流：与单机 aiDelayMs 一致，保证三家电脑节奏均匀、不秒响应（真人动作也计时，见 submitAction）
 export const RESPONSE_MS = 8_000; // 响应窗口（与单机 controller 对齐）
 export const TURN_MS = 30_000;    // 主回合（出牌/摸牌）
@@ -52,7 +51,7 @@ export interface RoomState {
   waitingNext: boolean;       // 本局结束等待所有在场真人点"下一局"（避免自动开新局吞掉结算页）
   nextReady: number[];        // 已同意"下一局"的真人座位（全员同意才开新局；退出者自动不计）
   trusted: boolean[];         // 真人托管标记：超时自动托管 → 之后轮到由 AI 代打；真人可点"取消托管"
-  botHuGrant?: { key: string; allow: boolean } | null; // 机器方点炮胡判定（当前响应窗口的掷骰结果；窗口跨多次 poll，须存 RoomState 保持一致；新字段 optional 兼容旧房间数据）
+  huTally?: { human: number; bot: number }; // 本房间胡牌计数（跨局累计，流局不计；机器配额 = 真人胡牌数 × 1/4，长期机器占胡牌总数 20%；新字段 optional 兼容旧房间数据）
 }
 
 export interface RoomStorage {
@@ -463,36 +462,27 @@ export class RoomManager {
   }
 
   /**
-   * 机器方胡牌判定（2026-09-23 用户规则）：真人数 ≤2 → 机器整体 20% 概率胡；真人数 ≥3 → 永不胡。
-   * "整体 20%"的实现——同一个胡牌时机全机器只掷一次骰，不随机器数放大：
-   * - 点炮响应窗口：整窗共用一次判定（结果存 RoomState.botHuGrant，跨 poll 一致；
-   *   命中则首家可胡机器宣告，胡>碰>吃 窗口立即结束，其余机器无需再响应）
-   * - 自摸：机器自己回合独立掷一次
+   * 机器胡牌判定（2026-09-23 用户规则·配额制）：
+   * - 真人数 ≥3 → 机器永不胡
+   * - 真人数 ≤2 → 机器胡牌总数 ≤ 真人胡牌总数 × 1/4（用户原话：胡 1000 次里真人 800、机器 200）
+   *   配额内逢胡必胡（点炮胡/自摸通用）；配额用尽 → 机器只陪打不胡，等真人再胡几局后解锁。
+   *   流局不计数；计分随结算累计（见 settleRound），机器/真人胡谁的座就记谁（中途退出换 bot 按当时座位算）。
    */
-  private botTryWin(room: RoomState, state: GameState, acts: GameAction[]): GameAction | null {
+  private botTryWin(room: RoomState, acts: GameAction[]): GameAction | null {
     if (this.humanCount(room) >= 3) return null;
-    const hu = acts.find((a) => a.type === 'hu');
-    if (!hu) return null;
-    const ph = state.phase;
-    if (ph.t === 'awaitResponse') {
-      // 窗口 key：窗口期间 log.length 稳定（响应只收集不落 log，裁决时才写），可唯一定位本窗口
-      const key = `r${state.log.length}:${ph.from}:${ph.discard}`;
-      if (!room.botHuGrant || room.botHuGrant.key !== key) {
-        room.botHuGrant = { key, allow: rand() < BOT_WIN_RATE };
-      }
-      return room.botHuGrant.allow ? hu : null;
-    }
-    return rand() < BOT_WIN_RATE ? hu : null;
+    const t = room.huTally ?? { human: 0, bot: 0 };
+    if (t.bot * 4 >= t.human + 3) return null; // 配额用尽（bot×4 < human+3 才允许，长期 bot ≈ human/4 → 机器占胡牌总数 20%）
+    return acts.find((a) => a.type === 'hu') ?? null;
   }
 
-  /** 陪打 bot 决策：可碰/吃/杠/出牌；胡牌走 botTryWin 的阵营概率判定（真人数 ≥3 时永不胡） */
+  /** 陪打 bot 决策：可碰/吃/杠/出牌正常强度；胡牌走 botTryWin 配额（真人数 ≥3 或配额用尽时永不胡） */
   private botDecide(room: RoomState, state: GameState, seat: number): GameAction {
     const acts = legalActions(state, seat);
     if (acts.length === 0) throw new Error('no legal');
     const ph = state.phase;
     if (ph.t === 'awaitDraw') return { type: 'draw' };
-    // 胡牌判定：命中则直接宣告胡（点炮胡/自摸通用）；未命中或 ≥3 真人 → 继续按不胡逻辑走
-    const win = this.botTryWin(room, state, acts);
+    // 胡牌判定：配额内有胡牌机会则直接宣告（点炮胡/自摸通用）；配额用尽或 ≥3 真人 → 继续按不胡逻辑走
+    const win = this.botTryWin(room, acts);
     if (win) return win;
     // 响应窗口：用 AI 评估碰/吃/杠（向听放宽 +2）
     if (ph.t === 'awaitResponse') {
@@ -528,11 +518,18 @@ export class RoomManager {
     return act;
   }
 
-  /** 结算本局：推进整场积分；不自动开新局（等房主点"下一局"），保证客户端能看到结算页 */
+  /** 结算本局：推进整场积分；累计胡牌配额计数；不自动开新局（等房主点"下一局"），保证客户端能看到结算页 */
   private settleRound(room: RoomState): void {
     if (!room.state || !room.match) return;
     const res = (room.state.phase as { t: 'over'; result: import('../src/engine/index.js').RoundResult }).result;
     advanceMatch(room.match, res);
+    // 胡牌配额计数（流局不计；按胡牌者当前座位属性归属机器/真人）
+    if (!res.liuju && res.winner >= 0) {
+      const t = room.huTally ?? { human: 0, bot: 0 };
+      if (room.players[res.winner]?.isBot) t.bot++;
+      else t.human++;
+      room.huTally = t;
+    }
     room.waitingNext = true;
     if (room.match.over) {
       room.phase = 'over';
